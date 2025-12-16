@@ -1,0 +1,20 @@
+﻿<!DOCTYPE html>
+<html>
+<head><title>Data Test</title></head>
+<body>
+<h1>Testing Dashboard Data</h1>
+<div id="test"></div>
+<script>
+fetch('http://localhost:3001/api/regulatory')
+  .then(r => r.json())
+  .then(data => {
+    document.getElementById('test').innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+    console.log('Risk Breakdown:', data.riskBreakdown);
+    console.log('Transaction Volume:', data.transactionVolume);
+    console.log('Suspicious Activity:', data.suspiciousActivity);
+    console.log('Compliance Status:', data.complianceStatus);
+    console.log('Recommendations:', data.recommendations);
+  });
+</script>
+</body>
+</html>

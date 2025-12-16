@@ -1,4 +1,4 @@
-import { ToolConfig } from "./allTools.js";
+import type { ToolConfig } from "./allTools.js";
 import { createViemWalletClient } from "../src/viem/createViemWalletClient.js";
 import { ERC20_ABI, ERC20_BYTECODE } from "../src/constants/contractDetails.js";
 import { createViemPublicClient } from "../src/viem/createViemPublicClient.js";

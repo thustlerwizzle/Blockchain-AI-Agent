@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import { Thread } from "openai/resources/beta/threads/threads";
+import type { Thread } from "openai/resources/beta/threads/threads";
 /**
  * Creates a new thread with an optional initial message.
  * @param client The OpenAI client to use.

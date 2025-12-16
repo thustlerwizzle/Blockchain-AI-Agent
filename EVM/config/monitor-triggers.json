@@ -1,0 +1,138 @@
+[
+  {
+    "id": "high-risk-alert",
+    "name": "High Risk Transaction Alert",
+    "description": "Alert when high-risk transactions are detected",
+    "enabled": true,
+    "network": "*",
+    "conditions": [
+      {
+        "type": "risk_score",
+        "operator": ">=",
+        "value": 80
+      }
+    ],
+    "actions": [
+      {
+        "type": "alert",
+        "config": {
+          "message": "🚨 High-risk transaction detected: ${tx.hash} (Risk: ${analysis.riskScore})"
+        }
+      },
+      {
+        "type": "log",
+        "config": {
+          "message": "High-risk transaction: ${tx.hash} on ${tx.chain}"
+        }
+      }
+    ],
+    "cooldown": 60000
+  },
+  {
+    "id": "large-value-monitor",
+    "name": "Large Value Monitor",
+    "description": "Monitor transactions exceeding threshold",
+    "enabled": true,
+    "network": "*",
+    "conditions": [
+      {
+        "type": "value_threshold",
+        "operator": ">",
+        "value": "1000000000000000000"
+      }
+    ],
+    "actions": [
+      {
+        "type": "notification",
+        "config": {
+          "message": "Large value transaction: ${tx.value} wei on ${tx.chain}"
+        }
+      }
+    ]
+  },
+  {
+    "id": "suspicious-activity",
+    "name": "Suspicious Activity Detection",
+    "description": "Detect suspicious transaction patterns",
+    "enabled": true,
+    "network": "*",
+    "conditions": [
+      {
+        "type": "anomaly_flag",
+        "operator": "includes",
+        "value": "RAPID_TRANSACTIONS"
+      }
+    ],
+    "actions": [
+      {
+        "type": "alert",
+        "config": {
+          "message": "⚠️ Suspicious activity detected: Rapid transactions pattern"
+        }
+      },
+      {
+        "type": "webhook",
+        "config": {
+          "webhookUrl": "http://localhost:3001/api/webhooks/suspicious"
+        }
+      }
+    ]
+  },
+  {
+    "id": "contract-interaction",
+    "name": "Contract Interaction Monitor",
+    "description": "Monitor specific contract interactions",
+    "enabled": true,
+    "network": "ethereum",
+    "conditions": [
+      {
+        "type": "address_match",
+        "operator": "==",
+        "field": "to",
+        "value": "0x0000000000000000000000000000000000000000"
+      }
+    ],
+    "actions": [
+      {
+        "type": "log",
+        "config": {
+          "message": "Contract interaction detected: ${tx.to}"
+        }
+      }
+    ]
+  },
+  {
+    "id": "daba-compliance-alert",
+    "name": "DABA Compliance Alert",
+    "description": "Alert for DABA compliance violations",
+    "enabled": true,
+    "network": "*",
+    "conditions": [
+      {
+        "type": "anomaly_flag",
+        "operator": "includes",
+        "value": "LARGE_VALUE"
+      },
+      {
+        "type": "risk_score",
+        "operator": ">=",
+        "value": 70
+      }
+    ],
+    "actions": [
+      {
+        "type": "alert",
+        "config": {
+          "message": "🏛️ DABA Compliance Alert: High-risk large value transaction detected"
+        }
+      },
+      {
+        "type": "notification",
+        "config": {
+          "message": "Transaction ${tx.hash} requires DABA compliance review"
+        }
+      }
+    ]
+  }
+]
+
