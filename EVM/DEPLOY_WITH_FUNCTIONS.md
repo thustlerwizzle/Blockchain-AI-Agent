@@ -79,3 +79,5 @@ Your site will work with:
 - ✅ Full financial statement analysis
 - ✅ Other endpoints return empty data (can be enhanced later)
 
+
+

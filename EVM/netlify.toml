@@ -13,19 +13,9 @@
   force = true
 
 [[redirects]]
-  from = "/regulator"
-  to = "/regulator.html"
-  status = 200
-
-[[redirects]]
   from = "/"
-  to = "/regulator.html"
+  to = "/index.html"
   status = 200
-
-[[redirects]]
-  from = "/index.html"
-  to = "/regulator.html"
-  status = 301
 
 [functions]
   node_bundler = "esbuild"

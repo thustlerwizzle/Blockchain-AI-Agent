@@ -412,13 +412,9 @@ app.post("/api/monitor/triggers", async (req: Request, res: Response) => {
 });
 
 // Serve regulator dashboard as the main page
-app.get("/regulator", (req: Request, res: Response) => {
-  res.sendFile(path.join(__dirname, "regulator.html"));
-});
-
-// Redirect root to regulator dashboard
+// Redirect root to index
 app.get("/", (req: Request, res: Response) => {
-  res.redirect("/regulator");
+  res.sendFile(path.join(__dirname, "index.html"));
 });
 
 app.post("/api/start", async (req: Request, res: Response) => {
@@ -1876,6 +1872,96 @@ app.get("/api/blockchain/network-stats", async (req: Request, res: Response) => 
   }
 });
 
+// Crypto News Endpoint
+app.get("/api/crypto/news", async (req: Request, res: Response) => {
+  try {
+    const limit = parseInt(req.query.limit as string) || 10;
+    
+    // Fetch news from CoinGecko API (free, no API key required)
+    const coinGeckoUrl = `https://api.coingecko.com/api/v3/news?per_page=${limit}`;
+    
+    try {
+      const response = await fetch(coinGeckoUrl);
+      if (!response.ok) {
+        throw new Error(`CoinGecko API error: ${response.status}`);
+      }
+      const data = await response.json();
+      
+      // Transform CoinGecko news format to our format
+      const news = (data.data || []).map((item: any) => ({
+        id: item.id || item.url,
+        title: item.title || 'No title',
+        description: item.description || item.text || '',
+        url: item.url || '',
+        image: item.thumb_2x || item.thumb || '',
+        source: item.news_site || 'CoinGecko',
+        publishedAt: item.updated_at || item.published_at || new Date().toISOString(),
+        tags: item.tags || [],
+      }));
+      
+      res.json({
+        success: true,
+        news,
+        count: news.length,
+        timestamp: Date.now(),
+      });
+    } catch (fetchError) {
+      console.error('Error fetching crypto news:', fetchError);
+      
+      // Fallback: Return sample news if API fails
+      const fallbackNews = [
+        {
+          id: '1',
+          title: 'Bitcoin Reaches New All-Time High',
+          description: 'Bitcoin continues its upward trajectory as institutional adoption increases.',
+          url: 'https://cointelegraph.com',
+          image: '',
+          source: 'CoinTelegraph',
+          publishedAt: new Date().toISOString(),
+          tags: ['Bitcoin', 'Market'],
+        },
+        {
+          id: '2',
+          title: 'Ethereum 2.0 Staking Surges',
+          description: 'More ETH is being staked as validators join the network.',
+          url: 'https://coindesk.com',
+          image: '',
+          source: 'CoinDesk',
+          publishedAt: new Date().toISOString(),
+          tags: ['Ethereum', 'Staking'],
+        },
+        {
+          id: '3',
+          title: 'Regulatory Updates in Crypto Space',
+          description: 'New regulations are being proposed to govern digital assets.',
+          url: 'https://cointelegraph.com',
+          image: '',
+          source: 'CryptoNews',
+          publishedAt: new Date().toISOString(),
+          tags: ['Regulation', 'Policy'],
+        },
+      ];
+      
+      res.json({
+        success: false,
+        news: fallbackNews.slice(0, limit),
+        count: fallbackNews.length,
+        timestamp: Date.now(),
+        error: 'Using fallback data',
+      });
+    }
+  } catch (error) {
+    console.error('Crypto news endpoint error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: String(error),
+      news: [],
+      count: 0,
+      timestamp: Date.now(),
+    });
+  }
+});
+
 // Test endpoint to verify data flow
 app.get("/api/test", async (req: Request, res: Response) => {
   const { agent, regulatoryMetrics } = await initializeAgent();
@@ -1897,18 +1983,17 @@ app.get("/api/test", async (req: Request, res: Response) => {
 // Serve static files AFTER all API routes
 app.use(express.static(path.join(__dirname)));
 
-// Fallback - redirect everything to regulator dashboard (except API routes)
+// Fallback - serve index.html for non-API routes
 app.get("*", (req: Request, res: Response) => {
-  // Redirect to regulator dashboard if it's not an API route
-  if (!req.path.startsWith("/api") && req.path !== "/regulator" && !req.path.endsWith(".html")) {
-    res.redirect("/regulator");
+  // Serve index.html if it's not an API route
+  if (!req.path.startsWith("/api") && !req.path.endsWith(".html")) {
+    res.sendFile(path.join(__dirname, "index.html"));
   }
 });
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
-  console.log(`📊 Regulator Dashboard server running on http://localhost:${PORT}`);
-  console.log(`🌐 Open http://localhost:${PORT}/regulator in your browser`);
-  console.log(`🔗 Root URL redirects to: http://localhost:${PORT}/regulator`);
+  console.log(`📊 Dashboard server running on http://localhost:${PORT}`);
+  console.log(`🌐 Open http://localhost:${PORT} in your browser`);
 });
 

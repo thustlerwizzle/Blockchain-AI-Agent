@@ -79,3 +79,5 @@ netlify status
 3. **Screenshot browser console** (F12) errors
 4. **Check network tab** for failed API calls
 
+
+

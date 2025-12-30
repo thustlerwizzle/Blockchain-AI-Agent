@@ -136,3 +136,5 @@ Write-Host "  1. Netlify function logs (Dashboard → Functions → server → L
 Write-Host "  2. Browser console (F12) for API errors" -ForegroundColor White
 Write-Host "  3. Network tab (F12) to see which API calls are failing" -ForegroundColor White
 
+
+

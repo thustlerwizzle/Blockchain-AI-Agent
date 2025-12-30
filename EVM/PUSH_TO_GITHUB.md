@@ -61,3 +61,5 @@ After deployment:
 2. Add API keys if needed (see `.env.example` for details)
 3. **Note:** API keys are NOT required - app works offline!
 
+
+
