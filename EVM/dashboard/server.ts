@@ -337,7 +337,34 @@ app.get("/api/stats", async (req: Request, res: Response) => {
   res.json(response);
 });
 
-// Regulatory endpoints removed - regulator dashboard has been removed
+app.get("/api/regulatory", async (req: Request, res: Response) => {
+  const { agent } = await initializeAgent();
+  const regulatoryMetrics = agent.getRegulatoryMetrics();
+  
+  if (!regulatoryMetrics) {
+    return res.status(503).json({ error: "Regulatory metrics not initialized" });
+  }
+  
+  const metrics = regulatoryMetrics.calculateMetrics();
+  res.json(serializeBigInt(metrics));
+});
+
+app.get("/api/daba", async (req: Request, res: Response) => {
+  const { agent } = await initializeAgent();
+  const dabaCompliance = agent.getDABACompliance();
+  
+  if (!dabaCompliance) {
+    return res.status(503).json({ error: "DABA compliance not initialized" });
+  }
+  
+  const compliance = dabaCompliance.calculateComplianceStatus();
+  const recommendations = dabaCompliance.getDABARecommendations(compliance);
+  
+  res.json(serializeBigInt({
+    ...compliance,
+    recommendations,
+  }));
+});
 
 app.get("/api/monitor/triggers", async (req: Request, res: Response) => {
   const { agent } = await initializeAgent();
@@ -385,9 +412,13 @@ app.post("/api/monitor/triggers", async (req: Request, res: Response) => {
 });
 
 // Serve regulator dashboard as the main page
-// Redirect root to index
+app.get("/regulator", (req: Request, res: Response) => {
+  res.sendFile(path.join(__dirname, "regulator.html"));
+});
+
+// Redirect root to regulator dashboard
 app.get("/", (req: Request, res: Response) => {
-  res.sendFile(path.join(__dirname, "index.html"));
+  res.redirect("/regulator");
 });
 
 app.post("/api/start", async (req: Request, res: Response) => {
@@ -914,7 +945,153 @@ app.get("/api/etherscan/address/:address/transactions", async (req: Request, res
 });
 
 // Regulatory Summary - Easy-to-understand summary for regulators
-// Regulatory summary endpoint removed - regulator dashboard has been removed
+app.get("/api/regulatory/summary", async (req: Request, res: Response) => {
+  try {
+    const { walletTracker, regulatoryMetrics, flowTracker } = await initializeAgent();
+    
+    // Get suspicious wallets
+    const suspiciousWallets = walletTracker ? walletTracker.getSuspiciousWallets(100) : [];
+    
+    // Get high-risk transactions
+    const highRiskTransactions = flowTracker ? flowTracker.getHighRiskTransactions(50) : [];
+    
+    // Get regulatory metrics
+    const metrics = regulatoryMetrics ? regulatoryMetrics.calculateMetrics() : null;
+    
+    // Create regulatory-friendly summary
+    const summary = {
+      timestamp: new Date().toISOString(),
+      overallRiskLevel: 'LOW', // LOW, MODERATE, HIGH, CRITICAL
+      suspiciousAddressesCount: suspiciousWallets.length,
+      highRiskTransactionsCount: highRiskTransactions.length,
+      
+      // Addresses requiring immediate attention
+      criticalAddresses: suspiciousWallets
+        .filter(w => w.riskScore >= 80)
+        .map(w => ({
+          address: w.address,
+          riskScore: w.riskScore,
+          riskLevel: w.riskScore >= 90 ? 'CRITICAL' : 'HIGH',
+          reasons: w.reason,
+          transactionCount: w.transactionCount,
+          totalVolume: w.totalVolume.toString(),
+          chains: w.chains,
+          summary: `Address ${w.address.slice(0, 10)}...${w.address.slice(-8)} has risk score of ${w.riskScore}/100. ${w.reason.join(', ')}. ${w.transactionCount} transactions across ${w.chains.length} chain(s).`
+        })),
+      
+      // High-risk addresses
+      highRiskAddresses: suspiciousWallets
+        .filter(w => w.riskScore >= 70 && w.riskScore < 80)
+        .map(w => ({
+          address: w.address,
+          riskScore: w.riskScore,
+          reasons: w.reason,
+          transactionCount: w.transactionCount,
+          summary: `Address ${w.address.slice(0, 10)}...${w.address.slice(-8)} shows high-risk patterns: ${w.reason.join(', ')}.`
+        })),
+      
+      // Risk categories breakdown with actual addresses
+      riskCategories: {
+        rapidTransactions: {
+          count: suspiciousWallets.filter(w => w.reason.some(r => r.includes('Rapid'))).length,
+          addresses: suspiciousWallets.filter(w => w.reason.some(r => r.includes('Rapid'))).map(w => ({
+            address: w.address,
+            riskScore: w.riskScore,
+            reasons: w.reason,
+            transactionCount: w.transactionCount,
+            totalVolume: w.totalVolume.toString(),
+            summary: `Address ${w.address.slice(0, 10)}...${w.address.slice(-8)} shows rapid transaction patterns: ${w.reason.join(', ')}. ${w.transactionCount} transactions.`
+          }))
+        },
+        largeValueTransactions: {
+          count: suspiciousWallets.filter(w => w.reason.some(r => r.includes('Large'))).length,
+          addresses: suspiciousWallets.filter(w => w.reason.some(r => r.includes('Large'))).map(w => ({
+            address: w.address,
+            riskScore: w.riskScore,
+            reasons: w.reason,
+            transactionCount: w.transactionCount,
+            totalVolume: w.totalVolume.toString(),
+            summary: `Address ${w.address.slice(0, 10)}...${w.address.slice(-8)} involved in large value transactions: ${w.reason.join(', ')}. Total volume: ${(Number(w.totalVolume) / 1e18).toFixed(4)} ETH.`
+          }))
+        },
+        structuring: {
+          count: suspiciousWallets.filter(w => w.reason.some(r => r.includes('Structuring'))).length,
+          addresses: suspiciousWallets.filter(w => w.reason.some(r => r.includes('Structuring'))).map(w => ({
+            address: w.address,
+            riskScore: w.riskScore,
+            reasons: w.reason,
+            transactionCount: w.transactionCount,
+            totalVolume: w.totalVolume.toString(),
+            summary: `Address ${w.address.slice(0, 10)}...${w.address.slice(-8)} shows potential structuring behavior: ${w.reason.join(', ')}. ${w.transactionCount} transactions.`
+          }))
+        },
+        multiChainActivity: {
+          count: suspiciousWallets.filter(w => w.reason.some(r => r.includes('Multi-Chain'))).length,
+          addresses: suspiciousWallets.filter(w => w.reason.some(r => r.includes('Multi-Chain'))).map(w => ({
+            address: w.address,
+            riskScore: w.riskScore,
+            reasons: w.reason,
+            transactionCount: w.transactionCount,
+            chains: w.chains,
+            summary: `Address ${w.address.slice(0, 10)}...${w.address.slice(-8)} active across ${w.chains.length} chains: ${w.chains.join(', ')}. ${w.transactionCount} transactions.`
+          }))
+        },
+        highConnections: {
+          count: suspiciousWallets.filter(w => w.reason.some(r => r.includes('Connections'))).length,
+          addresses: suspiciousWallets.filter(w => w.reason.some(r => r.includes('Connections'))).map(w => ({
+            address: w.address,
+            riskScore: w.riskScore,
+            reasons: w.reason,
+            transactionCount: w.transactionCount,
+            connectedAddresses: w.connectedAddresses,
+            summary: `Address ${w.address.slice(0, 10)}...${w.address.slice(-8)} has ${w.connectedAddresses} connected addresses, indicating high network activity. Risk: ${w.reason.join(', ')}.`
+          }))
+        },
+      },
+      
+      // Regulatory recommendations
+      recommendations: [
+        ...(suspiciousWallets.filter(w => w.riskScore >= 80).length > 0 ? [
+          `IMMEDIATE ACTION: ${suspiciousWallets.filter(w => w.riskScore >= 80).length} addresses with critical risk scores (≥80) require immediate regulatory review.`
+        ] : []),
+        ...(suspiciousWallets.filter(w => w.reason.some(r => r.includes('Rapid'))).length > 0 ? [
+          `Monitor ${suspiciousWallets.filter(w => w.reason.some(r => r.includes('Rapid'))).length} addresses showing rapid transaction patterns - potential structuring activity. See "Rapid Transactions" section below for address list.`
+        ] : []),
+        ...(suspiciousWallets.filter(w => w.reason.some(r => r.includes('Large'))).length > 0 ? [
+          `${suspiciousWallets.filter(w => w.reason.some(r => r.includes('Large'))).length} addresses involved in large value transactions require enhanced due diligence. See "Large Value Transactions" section below for complete address list.`
+        ] : []),
+        ...(highRiskTransactions.length > 0 ? [
+          `${highRiskTransactions.length} high-risk transactions detected. Review transaction flows for AML compliance.`
+        ] : []),
+      ],
+      
+      // Overall metrics
+      overallMetrics: metrics ? {
+        overallRiskScore: metrics.overallRiskScore || 0,
+        financialHealth: metrics.financialHealth?.score || 0,
+        amlCompliance: metrics.complianceStatus?.amlCompliance || 100,
+        kycCompliance: metrics.complianceStatus?.kycCompliance || 100,
+      } : null,
+    };
+    
+    // Determine overall risk level
+    const criticalCount = summary.criticalAddresses.length;
+    const highRiskCount = summary.highRiskAddresses.length;
+    
+    if (criticalCount > 0) {
+      summary.overallRiskLevel = 'CRITICAL';
+    } else if (highRiskCount > 5 || summary.highRiskTransactionsCount > 20) {
+      summary.overallRiskLevel = 'HIGH';
+    } else if (highRiskCount > 0 || summary.highRiskTransactionsCount > 0) {
+      summary.overallRiskLevel = 'MODERATE';
+    }
+    
+    res.json(serializeBigInt(summary));
+  } catch (error) {
+    console.error('Error generating regulatory summary:', error);
+    res.status(500).json({ error: String(error) });
+  }
+});
 
 // Financial Statement Analysis Endpoints
 app.get("/api/financial-statements/entities", async (req: Request, res: Response) => {
@@ -1810,17 +1987,18 @@ app.get("/api/test", async (req: Request, res: Response) => {
 // Serve static files AFTER all API routes
 app.use(express.static(path.join(__dirname)));
 
-// Fallback - serve index.html for non-API routes
+// Fallback - redirect everything to regulator dashboard (except API routes)
 app.get("*", (req: Request, res: Response) => {
-  // Serve index.html if it's not an API route
-  if (!req.path.startsWith("/api") && !req.path.endsWith(".html")) {
-    res.sendFile(path.join(__dirname, "index.html"));
+  // Redirect to regulator dashboard if it's not an API route
+  if (!req.path.startsWith("/api") && req.path !== "/regulator" && !req.path.endsWith(".html")) {
+    res.redirect("/regulator");
   }
 });
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
-  console.log(`📊 Dashboard server running on http://localhost:${PORT}`);
-  console.log(`🌐 Open http://localhost:${PORT} in your browser`);
+  console.log(`📊 Regulator Dashboard server running on http://localhost:${PORT}`);
+  console.log(`🌐 Open http://localhost:${PORT}/regulator in your browser`);
+  console.log(`🔗 Root URL redirects to: http://localhost:${PORT}/regulator`);
 });
 

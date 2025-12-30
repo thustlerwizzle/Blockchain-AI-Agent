@@ -12,6 +12,10 @@
       "dest": "dashboard/server.ts"
     },
     {
+      "src": "/regulator",
+      "dest": "dashboard/regulator.html"
+    },
+    {
       "src": "/",
       "dest": "dashboard/index.html"
     }

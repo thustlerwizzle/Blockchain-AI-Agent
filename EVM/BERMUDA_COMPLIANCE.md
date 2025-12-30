@@ -1,8 +1,8 @@
-# 🇧🇲 Bermuda DABA Compliance Documentation
+# Digital Asset Business Compliance Documentation
 
 ## Overview
 
-This system is designed to comply with Bermuda's **Digital Asset Business Act 2018 (DABA)** and related regulations enforced by the **Bermuda Monetary Authority (BMA)**.
+This system is designed to comply with the **Digital Asset Business Act 2018 (DABA)** and related digital asset business regulations.
 
 ## Supported Blockchain Platforms
 
@@ -44,7 +44,7 @@ The system monitors **real-time data** from the following blockchain platforms:
 - Real-time custody monitoring
 
 ### 3. Cyber Risk Management
-- **Operational Cyber Risk**: Compliance with BMA Operational Cyber Risk Management Code
+- **Operational Cyber Risk**: Compliance with Operational Cyber Risk Management Code
 - **Incident Response**: Incident response plan readiness
 - **Data Encryption**: Encryption standards compliance
 - **Access Controls**: Access control system verification
@@ -62,8 +62,8 @@ The system monitors **real-time data** from the following blockchain platforms:
 - **Reporting Deadlines**: Automated deadline reminders
 
 ### 6. Operational Requirements
-- **Head Office**: Verification of head office in Bermuda
-- **Code of Practice**: BMA Code of Practice compliance
+- **Head Office**: Verification of head office location
+- **Code of Practice**: Code of Practice compliance
 - **Capital Requirements**: Capital adequacy monitoring
 
 ## Dashboard Features
@@ -111,13 +111,9 @@ The system automatically:
 
 This system complies with:
 - **Digital Asset Business Act 2018 (DABA)**
-- **BMA Digital Asset Business Regulations**
+- **Digital Asset Business Regulations**
 - **Digital Asset Business (Custody of Client Assets) Rules 2024**
 - **Digital Asset Business (Cyber Risk) Rules 2023**
-- **BMA Operational Cyber Risk Management Code of Practice**
-- **Bermuda AML/ATF Regulations**
-
-## Contact
-
-For regulatory inquiries, contact the Bermuda Monetary Authority (BMA).
+- **Operational Cyber Risk Management Code of Practice**
+- **AML/ATF Regulations**
 
