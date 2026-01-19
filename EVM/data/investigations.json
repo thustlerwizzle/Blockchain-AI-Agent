@@ -1,0 +1,1199 @@
+[
+  {
+    "id": "1768859032977-0x1d4d3a2b193245e3f92173e019565c68530d7460",
+    "address": "0x1d4d3a2b193245e3f92173e019565c68530d7460",
+    "riskScore": 20,
+    "summary": "AI narrative unavailable due to upstream error.",
+    "alerts": [],
+    "chainActivity": [
+      {
+        "chain": "ethereum",
+        "hasActivity": true,
+        "txCount": 0,
+        "balance": "99409282145479",
+        "rpc": "https://eth-mainnet.g.alchemy.com/v2/pUEDC3Q1lPd3K690-n8cV"
+      },
+      {
+        "chain": "polygon",
+        "hasActivity": false,
+        "txCount": 0,
+        "balance": "0",
+        "rpc": "https://polygon-rpc.com"
+      },
+      {
+        "chain": "bsc",
+        "hasActivity": false,
+        "txCount": 0,
+        "balance": "0",
+        "rpc": "https://rpc.ankr.com/bsc"
+      },
+      {
+        "chain": "arbitrum",
+        "hasActivity": false,
+        "txCount": 0,
+        "balance": "0",
+        "rpc": "https://arb1.arbitrum.io/rpc"
+      },
+      {
+        "chain": "optimism",
+        "hasActivity": false,
+        "txCount": 0,
+        "balance": "0",
+        "rpc": "https://mainnet.optimism.io"
+      },
+      {
+        "chain": "base",
+        "hasActivity": true,
+        "txCount": 126,
+        "balance": "452174054107356",
+        "rpc": "https://mainnet.base.org"
+      },
+      {
+        "chain": "avalanche-fuji",
+        "hasActivity": false,
+        "txCount": 0,
+        "balance": "0",
+        "rpc": "https://api.avax-test.network/ext/bc/C/rpc"
+      },
+      {
+        "chain": "sepolia",
+        "hasActivity": false,
+        "txCount": 0,
+        "balance": "0",
+        "rpc": "https://sepolia.drpc.org"
+      }
+    ],
+    "timestamp": 1768859032977,
+    "status": "cleared",
+    "workflowAnalysis": {
+      "triage": {
+        "fundedByBridge": false,
+        "fundedByMixer": false,
+        "baseRisk": 0
+      },
+      "dependencyMapping": {
+        "clusterMatch": false,
+        "relatedAddresses": [],
+        "hopDistance": 999
+      },
+      "behavioralClass": "Dormant/New",
+      "payloadInspection": {
+        "highRiskFunctions": [],
+        "contractVerified": false
+      },
+      "sarReady": false
+    },
+    "highRiskTransactions": [],
+    "sarText": "SAR Summary (fallback): Address 0x1d4d3a2b193245e3f92173e019565c68530d7460 | Risk: 20/100 | Status: cleared | Cluster Match: false | SAR Ready: false"
+  },
+  {
+    "id": "1768859013628-0xf2021dd14a898fa1f4b124f112f1b6d3d184386c",
+    "address": "0xf2021dd14a898fa1f4b124f112f1b6d3d184386c",
+    "riskScore": 20,
+    "summary": "AI narrative unavailable due to upstream error.",
+    "alerts": [],
+    "chainActivity": [
+      {
+        "chain": "ethereum",
+        "hasActivity": false,
+        "txCount": 0,
+        "balance": "0",
+        "rpc": "https://eth-mainnet.g.alchemy.com/v2/pUEDC3Q1lPd3K690-n8cV"
+      },
+      {
+        "chain": "polygon",
+        "hasActivity": false,
+        "txCount": 0,
+        "balance": "0",
+        "rpc": "https://polygon-rpc.com"
+      },
+      {
+        "chain": "bsc",
+        "hasActivity": false,
+        "txCount": 0,
+        "balance": "0",
+        "rpc": "https://rpc.ankr.com/bsc"
+      },
+      {
+        "chain": "arbitrum",
+        "hasActivity": true,
+        "txCount": 40,
+        "balance": "3087904863109614",
+        "rpc": "https://arb1.arbitrum.io/rpc"
+      },
+      {
+        "chain": "optimism",
+        "hasActivity": false,
+        "txCount": 0,
+        "balance": "0",
+        "rpc": "https://mainnet.optimism.io"
+      },
+      {
+        "chain": "base",
+        "hasActivity": true,
+        "txCount": 2226,
+        "balance": "924888653334822",
+        "rpc": "https://mainnet.base.org"
+      },
+      {
+        "chain": "avalanche-fuji",
+        "hasActivity": false,
+        "txCount": 0,
+        "balance": "0",
+        "rpc": "https://api.avax-test.network/ext/bc/C/rpc"
+      },
+      {
+        "chain": "sepolia",
+        "hasActivity": false,
+        "txCount": 0,
+        "balance": "0",
+        "rpc": "https://sepolia.drpc.org"
+      }
+    ],
+    "timestamp": 1768859013628,
+    "status": "cleared",
+    "workflowAnalysis": {
+      "triage": {
+        "fundedByBridge": false,
+        "fundedByMixer": false,
+        "baseRisk": 0
+      },
+      "dependencyMapping": {
+        "clusterMatch": false,
+        "relatedAddresses": [],
+        "hopDistance": 999
+      },
+      "behavioralClass": "Dormant/New",
+      "payloadInspection": {
+        "highRiskFunctions": [],
+        "contractVerified": false
+      },
+      "sarReady": false
+    },
+    "highRiskTransactions": [],
+    "sarText": "SAR Summary (fallback): Address 0xf2021dd14a898fa1f4b124f112f1b6d3d184386c | Risk: 20/100 | Status: cleared | Cluster Match: false | SAR Ready: false"
+  },
+  {
+    "id": "1768859005174-0x301daff9d17c405806d44d8b222bf8a86266424a",
+    "address": "0x301daff9d17c405806d44d8b222bf8a86266424a",
+    "riskScore": 20,
+    "summary": "AI narrative unavailable due to upstream error.",
+    "alerts": [],
+    "chainActivity": [
+      {
+        "chain": "ethereum",
+        "hasActivity": false,
+        "txCount": 0,
+        "balance": "0",
+        "rpc": "https://eth-mainnet.g.alchemy.com/v2/pUEDC3Q1lPd3K690-n8cV"
+      },
+      {
+        "chain": "polygon",
+        "hasActivity": false,
+        "txCount": 0,
+        "balance": "0",
+        "rpc": "https://polygon-rpc.com"
+      },
+      {
+        "chain": "bsc",
+        "hasActivity": false,
+        "txCount": 0,
+        "balance": "0",
+        "rpc": "https://rpc.ankr.com/bsc"
+      },
+      {
+        "chain": "arbitrum",
+        "hasActivity": false,
+        "txCount": 0,
+        "balance": "0",
+        "rpc": "https://arb1.arbitrum.io/rpc"
+      },
+      {
+        "chain": "optimism",
+        "hasActivity": false,
+        "txCount": 0,
+        "balance": "0",
+        "rpc": "https://mainnet.optimism.io"
+      },
+      {
+        "chain": "base",
+        "hasActivity": false,
+        "txCount": 0,
+        "balance": "0",
+        "rpc": "https://mainnet.base.org"
+      },
+      {
+        "chain": "avalanche-fuji",
+        "hasActivity": false,
+        "txCount": 0,
+        "balance": "0",
+        "rpc": "https://api.avax-test.network/ext/bc/C/rpc"
+      },
+      {
+        "chain": "sepolia",
+        "hasActivity": true,
+        "txCount": 2143,
+        "balance": "13913285232190862",
+        "rpc": "https://sepolia.drpc.org"
+      }
+    ],
+    "timestamp": 1768859005174,
+    "status": "cleared",
+    "workflowAnalysis": {
+      "triage": {
+        "fundedByBridge": false,
+        "fundedByMixer": false,
+        "baseRisk": 0
+      },
+      "dependencyMapping": {
+        "clusterMatch": false,
+        "relatedAddresses": [],
+        "hopDistance": 999
+      },
+      "behavioralClass": "Dormant/New",
+      "payloadInspection": {
+        "highRiskFunctions": [],
+        "contractVerified": false
+      },
+      "sarReady": false
+    },
+    "highRiskTransactions": [],
+    "sarText": "SAR Summary (fallback): Address 0x301daff9d17c405806d44d8b222bf8a86266424a | Risk: 20/100 | Status: cleared | Cluster Match: false | SAR Ready: false"
+  },
+  {
+    "id": "1768858992423-0xaef5345aa70a44650ecc1d29b4303de47eb8bfa8",
+    "address": "0xaef5345aa70a44650ecc1d29b4303de47eb8bfa8",
+    "riskScore": 95,
+    "summary": "AI narrative unavailable due to upstream error.",
+    "alerts": [
+      {
+        "address": "0xaef5345aa70a44650ecc1d29b4303de47eb8bfa8",
+        "tokenAddress": "0x6ff5693b99212da76ad316178a184ab56d299b43",
+        "chain": "base",
+        "alertType": "PUMP_AND_DUMP",
+        "severity": "critical",
+        "riskScore": 95,
+        "timestamp": 1768848011,
+        "description": "Pump and dump scheme detected: Infinity% pump followed by -50.00% dump. Classic manipulation pattern.",
+        "priceChange": null,
+        "volumeSpike": 1.0007782417688524,
+        "relatedAddresses": [
+          "0xaef5345aa70a44650ecc1d29b4303de47eb8bfa8",
+          "0x6ff5693b99212da76ad316178a184ab56d299b43"
+        ],
+        "transactionHashes": [
+          "0xf994e38502c245c8d2b0b4a3f40e7a80a022cb5d6a2680834858420cc077a598"
+        ],
+        "timeWindow": 0.176
+      },
+      {
+        "address": "0xaef5345aa70a44650ecc1d29b4303de47eb8bfa8",
+        "tokenAddress": "0x6ff5693b99212da76ad316178a184ab56d299b43",
+        "chain": "base",
+        "alertType": "PUMP_AND_DUMP",
+        "severity": "critical",
+        "riskScore": 95,
+        "timestamp": 1768847961,
+        "description": "Pump and dump scheme detected: Infinity% pump followed by -100.00% dump. Classic manipulation pattern.",
+        "priceChange": null,
+        "volumeSpike": 3.4999999999982,
+        "relatedAddresses": [
+          "0xaef5345aa70a44650ecc1d29b4303de47eb8bfa8",
+          "0x6ff5693b99212da76ad316178a184ab56d299b43"
+        ],
+        "transactionHashes": [
+          "0xb8f7b636ca91f68511f25e3d5b0f62d2630f55e969374c426ac19f3c8d209148"
+        ],
+        "timeWindow": 0.236
+      },
+      {
+        "address": "0xaef5345aa70a44650ecc1d29b4303de47eb8bfa8",
+        "tokenAddress": "0x6ff5693b99212da76ad316178a184ab56d299b43",
+        "chain": "base",
+        "alertType": "VOLUME_SPIKE",
+        "severity": "medium",
+        "riskScore": 52.499999999973,
+        "timestamp": 1768847961,
+        "description": "Unusual volume spike detected: 3.50x average volume. Possible manipulation.",
+        "volumeSpike": 3.4999999999982,
+        "volumeAnalysis": {
+          "currentVolume": "700000000000032",
+          "averageVolume": "200000000000112",
+          "volumeSpike": 3.4999999999982,
+          "volumeToMarketCapRatio": 0.5
+        },
+        "relatedAddresses": [
+          "0xaef5345aa70a44650ecc1d29b4303de47eb8bfa8",
+          "0x6ff5693b99212da76ad316178a184ab56d299b43"
+        ],
+        "transactionHashes": [
+          "0xb8f7b636ca91f68511f25e3d5b0f62d2630f55e969374c426ac19f3c8d209148"
+        ],
+        "timeWindow": 3600
+      },
+      {
+        "address": "0xaef5345aa70a44650ecc1d29b4303de47eb8bfa8",
+        "tokenAddress": "0x6ff5693b99212da76ad316178a184ab56d299b43",
+        "chain": "base",
+        "alertType": "PUMP_AND_DUMP",
+        "severity": "critical",
+        "riskScore": 95,
+        "timestamp": 1768847905,
+        "description": "Pump and dump scheme detected: Infinity% pump followed by -100.00% dump. Classic manipulation pattern.",
+        "priceChange": null,
+        "volumeSpike": 2.4999999999993374,
+        "relatedAddresses": [
+          "0xaef5345aa70a44650ecc1d29b4303de47eb8bfa8",
+          "0x6ff5693b99212da76ad316178a184ab56d299b43"
+        ],
+        "transactionHashes": [
+          "0xb3c29b65b84880cb3e70ace036389c3491525228f23317edb9ccfc70aba41ee2"
+        ],
+        "timeWindow": 0.168
+      },
+      {
+        "address": "0xaef5345aa70a44650ecc1d29b4303de47eb8bfa8",
+        "tokenAddress": "0x6ff5693b99212da76ad316178a184ab56d299b43",
+        "chain": "base",
+        "alertType": "PUMP_AND_DUMP",
+        "severity": "critical",
+        "riskScore": 95,
+        "timestamp": 1768847869,
+        "description": "Pump and dump scheme detected: 481927710843273.56% pump followed by -50.00% dump. Classic manipulation pattern.",
+        "priceChange": 481927710843223.56,
+        "volumeSpike": 2.499999999999165,
+        "relatedAddresses": [
+          "0xaef5345aa70a44650ecc1d29b4303de47eb8bfa8",
+          "0x6ff5693b99212da76ad316178a184ab56d299b43"
+        ],
+        "transactionHashes": [
+          "0x52d4a4bc974ebf3bc918c110b6cac8a8986006e8ab78c7c9878281f8ce87fc73"
+        ],
+        "timeWindow": 0.154
+      }
+    ],
+    "chainActivity": [
+      {
+        "chain": "ethereum",
+        "hasActivity": false,
+        "txCount": 0,
+        "balance": "0",
+        "rpc": "https://eth-mainnet.g.alchemy.com/v2/pUEDC3Q1lPd3K690-n8cV"
+      },
+      {
+        "chain": "polygon",
+        "hasActivity": false,
+        "txCount": 0,
+        "balance": "0",
+        "rpc": "https://polygon-rpc.com"
+      },
+      {
+        "chain": "bsc",
+        "hasActivity": false,
+        "txCount": 0,
+        "balance": "0",
+        "rpc": "https://rpc.ankr.com/bsc"
+      },
+      {
+        "chain": "arbitrum",
+        "hasActivity": false,
+        "txCount": 0,
+        "balance": "0",
+        "rpc": "https://arb1.arbitrum.io/rpc"
+      },
+      {
+        "chain": "optimism",
+        "hasActivity": false,
+        "txCount": 0,
+        "balance": "0",
+        "rpc": "https://mainnet.optimism.io"
+      },
+      {
+        "chain": "base",
+        "hasActivity": true,
+        "txCount": 582,
+        "balance": "22779908590955474",
+        "rpc": "https://mainnet.base.org"
+      },
+      {
+        "chain": "avalanche-fuji",
+        "hasActivity": false,
+        "txCount": 0,
+        "balance": "0",
+        "rpc": "https://api.avax-test.network/ext/bc/C/rpc"
+      },
+      {
+        "chain": "sepolia",
+        "hasActivity": false,
+        "txCount": 0,
+        "balance": "0",
+        "rpc": "https://sepolia.drpc.org"
+      }
+    ],
+    "timestamp": 1768858992423,
+    "status": "flagged",
+    "workflowAnalysis": {
+      "triage": {
+        "fundedByBridge": false,
+        "fundedByMixer": false,
+        "baseRisk": 0
+      },
+      "dependencyMapping": {
+        "clusterMatch": false,
+        "relatedAddresses": [],
+        "hopDistance": 999
+      },
+      "behavioralClass": "Dormant/New",
+      "payloadInspection": {
+        "highRiskFunctions": [],
+        "contractVerified": false
+      },
+      "sarReady": false
+    },
+    "highRiskTransactions": [],
+    "sarText": "SAR Summary (fallback): Address 0xaef5345aa70a44650ecc1d29b4303de47eb8bfa8 | Risk: 95/100 | Status: flagged | Cluster Match: false | SAR Ready: false"
+  },
+  {
+    "id": "1768858959908-0x9a3cd5d812fee5b6eec9660adca6c392e02741a3",
+    "address": "0x9a3cd5d812fee5b6eec9660adca6c392e02741a3",
+    "riskScore": 95,
+    "summary": "AI narrative unavailable due to upstream error.",
+    "alerts": [
+      {
+        "address": "0x9a3cd5d812fee5b6eec9660adca6c392e02741a3",
+        "tokenAddress": "0x1195cf65f83b3a5768f3c496d3a05ad6412c64b7",
+        "chain": "base",
+        "alertType": "PUMP_AND_DUMP",
+        "severity": "critical",
+        "riskScore": 95,
+        "timestamp": 1768858585,
+        "description": "Pump and dump scheme detected: Infinity% pump followed by -100.00% dump. Classic manipulation pattern.",
+        "priceChange": null,
+        "volumeSpike": 0.40036478192455166,
+        "relatedAddresses": [
+          "0x9a3cd5d812fee5b6eec9660adca6c392e02741a3",
+          "0x1195cf65f83b3a5768f3c496d3a05ad6412c64b7"
+        ],
+        "transactionHashes": [
+          "0x6b60c241d7c21900057a1b9548af2bde761fe75c1e50567325c9b4d0cfaf3bdc"
+        ],
+        "timeWindow": 3.996
+      },
+      {
+        "address": "0x9a3cd5d812fee5b6eec9660adca6c392e02741a3",
+        "tokenAddress": "0x1195cf65f83b3a5768f3c496d3a05ad6412c64b7",
+        "chain": "base",
+        "alertType": "PUMP_AND_DUMP",
+        "severity": "critical",
+        "riskScore": 95,
+        "timestamp": 1768858535,
+        "description": "Pump and dump scheme detected: Infinity% pump followed by -100.00% dump. Classic manipulation pattern.",
+        "priceChange": null,
+        "volumeSpike": 0.40036478192455166,
+        "relatedAddresses": [
+          "0x9a3cd5d812fee5b6eec9660adca6c392e02741a3",
+          "0x1195cf65f83b3a5768f3c496d3a05ad6412c64b7"
+        ],
+        "transactionHashes": [
+          "0x85a8e3abae39ced0a479abf9e7dff0e9b0d04a6e79fbe3cc71763381273a02bf"
+        ],
+        "timeWindow": 4.044
+      }
+    ],
+    "chainActivity": [
+      {
+        "chain": "ethereum",
+        "hasActivity": false,
+        "txCount": 0,
+        "balance": "0",
+        "rpc": "https://eth-mainnet.g.alchemy.com/v2/pUEDC3Q1lPd3K690-n8cV"
+      },
+      {
+        "chain": "polygon",
+        "hasActivity": true,
+        "txCount": 0,
+        "balance": "226516145464359456502",
+        "rpc": "https://polygon-rpc.com"
+      },
+      {
+        "chain": "bsc",
+        "hasActivity": false,
+        "txCount": 0,
+        "balance": "0",
+        "rpc": "https://rpc.ankr.com/bsc"
+      },
+      {
+        "chain": "arbitrum",
+        "hasActivity": true,
+        "txCount": 264775,
+        "balance": "78244494022409620",
+        "rpc": "https://arb1.arbitrum.io/rpc"
+      },
+      {
+        "chain": "optimism",
+        "hasActivity": true,
+        "txCount": 328123,
+        "balance": "161815561695822830",
+        "rpc": "https://mainnet.optimism.io"
+      },
+      {
+        "chain": "base",
+        "hasActivity": true,
+        "txCount": 1510283,
+        "balance": "148923198737710015",
+        "rpc": "https://mainnet.base.org"
+      },
+      {
+        "chain": "avalanche-fuji",
+        "hasActivity": false,
+        "txCount": 0,
+        "balance": "0",
+        "rpc": "https://api.avax-test.network/ext/bc/C/rpc"
+      },
+      {
+        "chain": "sepolia",
+        "hasActivity": false,
+        "txCount": 0,
+        "balance": "0",
+        "rpc": "https://sepolia.drpc.org"
+      }
+    ],
+    "timestamp": 1768858959908,
+    "status": "flagged",
+    "workflowAnalysis": {
+      "triage": {
+        "fundedByBridge": false,
+        "fundedByMixer": false,
+        "baseRisk": 0
+      },
+      "dependencyMapping": {
+        "clusterMatch": false,
+        "relatedAddresses": [],
+        "hopDistance": 999
+      },
+      "behavioralClass": "Dormant/New",
+      "payloadInspection": {
+        "highRiskFunctions": [],
+        "contractVerified": false
+      },
+      "sarReady": false
+    },
+    "highRiskTransactions": [],
+    "sarText": "SAR Summary (fallback): Address 0x9a3cd5d812fee5b6eec9660adca6c392e02741a3 | Risk: 95/100 | Status: flagged | Cluster Match: false | SAR Ready: false"
+  },
+  {
+    "id": "1768858957196-0x7faffc7c78861355123415137867f39fb7cf5e1d",
+    "address": "0x7faffc7c78861355123415137867f39fb7cf5e1d",
+    "riskScore": 20,
+    "summary": "AI narrative unavailable due to upstream error.",
+    "alerts": [],
+    "chainActivity": [
+      {
+        "chain": "ethereum",
+        "hasActivity": true,
+        "txCount": 1,
+        "balance": "0",
+        "rpc": "https://eth-mainnet.g.alchemy.com/v2/pUEDC3Q1lPd3K690-n8cV"
+      },
+      {
+        "chain": "polygon",
+        "hasActivity": false,
+        "txCount": 0,
+        "balance": "0",
+        "rpc": "https://polygon-rpc.com"
+      },
+      {
+        "chain": "bsc",
+        "hasActivity": false,
+        "txCount": 0,
+        "balance": "0",
+        "rpc": "https://rpc.ankr.com/bsc"
+      },
+      {
+        "chain": "arbitrum",
+        "hasActivity": false,
+        "txCount": 0,
+        "balance": "0",
+        "rpc": "https://arb1.arbitrum.io/rpc"
+      },
+      {
+        "chain": "optimism",
+        "hasActivity": false,
+        "txCount": 0,
+        "balance": "0",
+        "rpc": "https://mainnet.optimism.io"
+      },
+      {
+        "chain": "base",
+        "hasActivity": true,
+        "txCount": 432,
+        "balance": "32701845605527425",
+        "rpc": "https://mainnet.base.org"
+      },
+      {
+        "chain": "avalanche-fuji",
+        "hasActivity": false,
+        "txCount": 0,
+        "balance": "0",
+        "rpc": "https://api.avax-test.network/ext/bc/C/rpc"
+      },
+      {
+        "chain": "sepolia",
+        "hasActivity": false,
+        "txCount": 0,
+        "balance": "0",
+        "rpc": "https://sepolia.drpc.org"
+      }
+    ],
+    "timestamp": 1768858957196,
+    "status": "cleared",
+    "workflowAnalysis": {
+      "triage": {
+        "fundedByBridge": false,
+        "fundedByMixer": false,
+        "baseRisk": 0
+      },
+      "dependencyMapping": {
+        "clusterMatch": false,
+        "relatedAddresses": [],
+        "hopDistance": 999
+      },
+      "behavioralClass": "Dormant/New",
+      "payloadInspection": {
+        "highRiskFunctions": [],
+        "contractVerified": false
+      },
+      "sarReady": false
+    },
+    "highRiskTransactions": [],
+    "sarText": "SAR Summary (fallback): Address 0x7faffc7c78861355123415137867f39fb7cf5e1d | Risk: 20/100 | Status: cleared | Cluster Match: false | SAR Ready: false"
+  },
+  {
+    "id": "1768858955071-0x7e49aec513d368d44e2be62b6bc7bb3e65fef25a",
+    "address": "0x7e49aec513d368d44e2be62b6bc7bb3e65fef25a",
+    "riskScore": 20,
+    "summary": "AI narrative unavailable due to upstream error.",
+    "alerts": [],
+    "chainActivity": [
+      {
+        "chain": "ethereum",
+        "hasActivity": true,
+        "txCount": 17,
+        "balance": "15700851816547014",
+        "rpc": "https://eth-mainnet.g.alchemy.com/v2/pUEDC3Q1lPd3K690-n8cV"
+      },
+      {
+        "chain": "polygon",
+        "hasActivity": false,
+        "txCount": 0,
+        "balance": "0",
+        "rpc": "https://polygon-rpc.com"
+      },
+      {
+        "chain": "bsc",
+        "hasActivity": false,
+        "txCount": 0,
+        "balance": "0",
+        "rpc": "https://rpc.ankr.com/bsc"
+      },
+      {
+        "chain": "arbitrum",
+        "hasActivity": false,
+        "txCount": 0,
+        "balance": "0",
+        "rpc": "https://arb1.arbitrum.io/rpc"
+      },
+      {
+        "chain": "optimism",
+        "hasActivity": false,
+        "txCount": 0,
+        "balance": "0",
+        "rpc": "https://mainnet.optimism.io"
+      },
+      {
+        "chain": "base",
+        "hasActivity": true,
+        "txCount": 8870,
+        "balance": "5912397873349931",
+        "rpc": "https://mainnet.base.org"
+      },
+      {
+        "chain": "avalanche-fuji",
+        "hasActivity": false,
+        "txCount": 0,
+        "balance": "0",
+        "rpc": "https://api.avax-test.network/ext/bc/C/rpc"
+      },
+      {
+        "chain": "sepolia",
+        "hasActivity": false,
+        "txCount": 0,
+        "balance": "0",
+        "rpc": "https://sepolia.drpc.org"
+      }
+    ],
+    "timestamp": 1768858955071,
+    "status": "cleared",
+    "workflowAnalysis": {
+      "triage": {
+        "fundedByBridge": false,
+        "fundedByMixer": false,
+        "baseRisk": 0
+      },
+      "dependencyMapping": {
+        "clusterMatch": false,
+        "relatedAddresses": [],
+        "hopDistance": 999
+      },
+      "behavioralClass": "Dormant/New",
+      "payloadInspection": {
+        "highRiskFunctions": [],
+        "contractVerified": false
+      },
+      "sarReady": false
+    },
+    "highRiskTransactions": [],
+    "sarText": "SAR Summary (fallback): Address 0x7e49aec513d368d44e2be62b6bc7bb3e65fef25a | Risk: 20/100 | Status: cleared | Cluster Match: false | SAR Ready: false"
+  },
+  {
+    "id": "1768858942620-0xe0e8ccbfd8e7366ae3016db0529b1b209b8b98b6",
+    "address": "0xe0e8ccbfd8e7366ae3016db0529b1b209b8b98b6",
+    "riskScore": 95,
+    "summary": "AI narrative unavailable due to upstream error.",
+    "alerts": [
+      {
+        "address": "0xe0e8ccbfd8e7366ae3016db0529b1b209b8b98b6",
+        "tokenAddress": "0x4752ba5dbc23f44d87826276bf6fd6b1c372ad24",
+        "chain": "base",
+        "alertType": "PUMP_AND_DUMP",
+        "severity": "critical",
+        "riskScore": 95,
+        "timestamp": 1768818993,
+        "description": "Pump and dump scheme detected: Infinity% pump followed by -100.00% dump. Classic manipulation pattern.",
+        "priceChange": null,
+        "volumeSpike": 1.6639060183437022,
+        "relatedAddresses": [
+          "0xe0e8ccbfd8e7366ae3016db0529b1b209b8b98b6",
+          "0x4752ba5dbc23f44d87826276bf6fd6b1c372ad24"
+        ],
+        "transactionHashes": [
+          "0x81a23b0ba3c3de443d4cdc719a5f5326470f89cc3ab020b03a3f73e8c29417e5"
+        ],
+        "timeWindow": 0.33
+      },
+      {
+        "address": "0xe0e8ccbfd8e7366ae3016db0529b1b209b8b98b6",
+        "tokenAddress": "0x4752ba5dbc23f44d87826276bf6fd6b1c372ad24",
+        "chain": "base",
+        "alertType": "PUMP_AND_DUMP",
+        "severity": "critical",
+        "riskScore": 95,
+        "timestamp": 1768818663,
+        "description": "Pump and dump scheme detected: 847.69% pump followed by -100.00% dump. Classic manipulation pattern.",
+        "priceChange": 747.6923076923075,
+        "volumeSpike": 0.7419135399838056,
+        "relatedAddresses": [
+          "0xe0e8ccbfd8e7366ae3016db0529b1b209b8b98b6",
+          "0x4752ba5dbc23f44d87826276bf6fd6b1c372ad24"
+        ],
+        "transactionHashes": [
+          "0x5d856a997969752cfd3f756c591fe9ccb564bb5a6d08ba8439f3007355535100"
+        ],
+        "timeWindow": 0.242
+      },
+      {
+        "address": "0xe0e8ccbfd8e7366ae3016db0529b1b209b8b98b6",
+        "tokenAddress": "0x4752ba5dbc23f44d87826276bf6fd6b1c372ad24",
+        "chain": "base",
+        "alertType": "VOLUME_SPIKE",
+        "severity": "high",
+        "riskScore": 75.01355115268566,
+        "timestamp": 1768818577,
+        "description": "Unusual volume spike detected: 5.00x average volume. Possible manipulation.",
+        "volumeSpike": 5.000903410179045,
+        "volumeAnalysis": {
+          "currentVolume": "130379364876804423",
+          "averageVolume": "26071162384665317",
+          "volumeSpike": 5.000903410179045,
+          "volumeToMarketCapRatio": 0.5
+        },
+        "relatedAddresses": [
+          "0xe0e8ccbfd8e7366ae3016db0529b1b209b8b98b6",
+          "0x4752ba5dbc23f44d87826276bf6fd6b1c372ad24"
+        ],
+        "transactionHashes": [
+          "0xad56a60a7c1627c8613e880bfdc2e8f4c8d163de9ce0ffd149f82a11739b9253"
+        ],
+        "timeWindow": 3600
+      },
+      {
+        "address": "0xe0e8ccbfd8e7366ae3016db0529b1b209b8b98b6",
+        "tokenAddress": "0x4752ba5dbc23f44d87826276bf6fd6b1c372ad24",
+        "chain": "base",
+        "alertType": "VOLUME_SPIKE",
+        "severity": "medium",
+        "riskScore": 64.29732955944485,
+        "timestamp": 1768818551,
+        "description": "Unusual volume spike detected: 4.29x average volume. Possible manipulation.",
+        "volumeSpike": 4.286488637296324,
+        "volumeAnalysis": {
+          "currentVolume": "130379364876804423",
+          "averageVolume": "30416356115442870",
+          "volumeSpike": 4.286488637296324,
+          "volumeToMarketCapRatio": 0.5
+        },
+        "relatedAddresses": [
+          "0xe0e8ccbfd8e7366ae3016db0529b1b209b8b98b6",
+          "0x4752ba5dbc23f44d87826276bf6fd6b1c372ad24"
+        ],
+        "transactionHashes": [
+          "0x499baed20cb7597fdfacc8d18db77ca337ab0621757b95a534e007e6ebf0109e"
+        ],
+        "timeWindow": 3600
+      }
+    ],
+    "chainActivity": [
+      {
+        "chain": "ethereum",
+        "hasActivity": false,
+        "txCount": 0,
+        "balance": "0",
+        "rpc": "https://eth-mainnet.g.alchemy.com/v2/pUEDC3Q1lPd3K690-n8cV"
+      },
+      {
+        "chain": "polygon",
+        "hasActivity": false,
+        "txCount": 0,
+        "balance": "0",
+        "rpc": "https://polygon-rpc.com"
+      },
+      {
+        "chain": "bsc",
+        "hasActivity": false,
+        "txCount": 0,
+        "balance": "0",
+        "rpc": "https://rpc.ankr.com/bsc"
+      },
+      {
+        "chain": "arbitrum",
+        "hasActivity": false,
+        "txCount": 0,
+        "balance": "0",
+        "rpc": "https://arb1.arbitrum.io/rpc"
+      },
+      {
+        "chain": "optimism",
+        "hasActivity": false,
+        "txCount": 0,
+        "balance": "0",
+        "rpc": "https://mainnet.optimism.io"
+      },
+      {
+        "chain": "base",
+        "hasActivity": true,
+        "txCount": 1926,
+        "balance": "92465974065767156",
+        "rpc": "https://mainnet.base.org"
+      },
+      {
+        "chain": "avalanche-fuji",
+        "hasActivity": false,
+        "txCount": 0,
+        "balance": "0",
+        "rpc": "https://api.avax-test.network/ext/bc/C/rpc"
+      },
+      {
+        "chain": "sepolia",
+        "hasActivity": false,
+        "txCount": 0,
+        "balance": "0",
+        "rpc": "https://sepolia.drpc.org"
+      }
+    ],
+    "timestamp": 1768858942620,
+    "status": "flagged",
+    "workflowAnalysis": {
+      "triage": {
+        "fundedByBridge": false,
+        "fundedByMixer": false,
+        "baseRisk": 0
+      },
+      "dependencyMapping": {
+        "clusterMatch": false,
+        "relatedAddresses": [],
+        "hopDistance": 999
+      },
+      "behavioralClass": "Dormant/New",
+      "payloadInspection": {
+        "highRiskFunctions": [],
+        "contractVerified": false
+      },
+      "sarReady": false
+    },
+    "highRiskTransactions": [],
+    "sarText": "SAR Summary (fallback): Address 0xe0e8ccbfd8e7366ae3016db0529b1b209b8b98b6 | Risk: 95/100 | Status: flagged | Cluster Match: false | SAR Ready: false"
+  },
+  {
+    "id": "1768858908908-0xb2324d24adea0440574ec7a1ac858c7a5265b5f1",
+    "address": "0xb2324d24adea0440574ec7a1ac858c7a5265b5f1",
+    "riskScore": 95,
+    "summary": "AI narrative unavailable due to upstream error.",
+    "alerts": [
+      {
+        "address": "0xb2324d24adea0440574ec7a1ac858c7a5265b5f1",
+        "tokenAddress": "0x6ff5693b99212da76ad316178a184ab56d299b43",
+        "chain": "base",
+        "alertType": "PUMP_AND_DUMP",
+        "severity": "critical",
+        "riskScore": 95,
+        "timestamp": 1768819067,
+        "description": "Pump and dump scheme detected: 50.00% pump followed by -98.00% dump. Classic manipulation pattern.",
+        "priceChange": -48,
+        "volumeSpike": 0.5,
+        "relatedAddresses": [
+          "0xb2324d24adea0440574ec7a1ac858c7a5265b5f1",
+          "0x6ff5693b99212da76ad316178a184ab56d299b43"
+        ],
+        "transactionHashes": [
+          "0x338bce83c1cf7e5ee8676a8e6a611837d5d67cb19b6443056e235151b23677ee"
+        ],
+        "timeWindow": 0.3
+      },
+      {
+        "address": "0xb2324d24adea0440574ec7a1ac858c7a5265b5f1",
+        "tokenAddress": "0x6ff5693b99212da76ad316178a184ab56d299b43",
+        "chain": "base",
+        "alertType": "PUMP_AND_DUMP",
+        "severity": "critical",
+        "riskScore": 95,
+        "timestamp": 1768818867,
+        "description": "Pump and dump scheme detected: 1460.00% pump followed by -100.00% dump. Classic manipulation pattern.",
+        "priceChange": 1359.9999999999998,
+        "volumeSpike": 0.1186046511627907,
+        "relatedAddresses": [
+          "0xb2324d24adea0440574ec7a1ac858c7a5265b5f1",
+          "0x6ff5693b99212da76ad316178a184ab56d299b43"
+        ],
+        "transactionHashes": [
+          "0xd6b1d1ff85fd5322a915d60ef94ff6048ea038f6166607b5bd3656e67ed47d19"
+        ],
+        "timeWindow": 0.154
+      },
+      {
+        "address": "0xb2324d24adea0440574ec7a1ac858c7a5265b5f1",
+        "tokenAddress": "0x6ff5693b99212da76ad316178a184ab56d299b43",
+        "chain": "base",
+        "alertType": "PUMP_AND_DUMP",
+        "severity": "critical",
+        "riskScore": 95,
+        "timestamp": 1768818815,
+        "description": "Pump and dump scheme detected: Infinity% pump followed by -99.81% dump. Classic manipulation pattern.",
+        "priceChange": null,
+        "volumeSpike": 8.019354838708953,
+        "relatedAddresses": [
+          "0xb2324d24adea0440574ec7a1ac858c7a5265b5f1",
+          "0x6ff5693b99212da76ad316178a184ab56d299b43"
+        ],
+        "transactionHashes": [
+          "0x7a6761401bf6d4d673ecc3c0f02c9a2598c6b9b955463ef1b2d4541bebee5491"
+        ],
+        "timeWindow": 0.18
+      },
+      {
+        "address": "0xb2324d24adea0440574ec7a1ac858c7a5265b5f1",
+        "tokenAddress": "0x6ff5693b99212da76ad316178a184ab56d299b43",
+        "chain": "base",
+        "alertType": "VOLUME_SPIKE",
+        "severity": "high",
+        "riskScore": 90,
+        "timestamp": 1768818815,
+        "description": "Unusual volume spike detected: 8.02x average volume. Possible manipulation.",
+        "volumeSpike": 8.019354838708953,
+        "volumeAnalysis": {
+          "currentVolume": "2486000000000000",
+          "averageVolume": "310000000000028",
+          "volumeSpike": 8.019354838708953,
+          "volumeToMarketCapRatio": 0.5
+        },
+        "relatedAddresses": [
+          "0xb2324d24adea0440574ec7a1ac858c7a5265b5f1",
+          "0x6ff5693b99212da76ad316178a184ab56d299b43"
+        ],
+        "transactionHashes": [
+          "0x7a6761401bf6d4d673ecc3c0f02c9a2598c6b9b955463ef1b2d4541bebee5491"
+        ],
+        "timeWindow": 3600
+      },
+      {
+        "address": "0xb2324d24adea0440574ec7a1ac858c7a5265b5f1",
+        "tokenAddress": "0x6ff5693b99212da76ad316178a184ab56d299b43",
+        "chain": "base",
+        "alertType": "PUMP_AND_DUMP",
+        "severity": "critical",
+        "riskScore": 95,
+        "timestamp": 1768818793,
+        "description": "Pump and dump scheme detected: 2008.11% pump followed by -99.81% dump. Classic manipulation pattern.",
+        "priceChange": 1908.3004158004157,
+        "volumeSpike": 7.583832335328705,
+        "relatedAddresses": [
+          "0xb2324d24adea0440574ec7a1ac858c7a5265b5f1",
+          "0x6ff5693b99212da76ad316178a184ab56d299b43"
+        ],
+        "transactionHashes": [
+          "0x3e37ebd050073391d8962adc364f014500d18fb571f09600f77d3fbfaa656233"
+        ],
+        "timeWindow": 0.158
+      },
+      {
+        "address": "0xb2324d24adea0440574ec7a1ac858c7a5265b5f1",
+        "tokenAddress": "0x6ff5693b99212da76ad316178a184ab56d299b43",
+        "chain": "base",
+        "alertType": "VOLUME_SPIKE",
+        "severity": "high",
+        "riskScore": 90,
+        "timestamp": 1768818793,
+        "description": "Unusual volume spike detected: 7.58x average volume. Possible manipulation.",
+        "volumeSpike": 7.583832335328705,
+        "volumeAnalysis": {
+          "currentVolume": "2533000000000000",
+          "averageVolume": "334000000000028",
+          "volumeSpike": 7.583832335328705,
+          "volumeToMarketCapRatio": 0.5
+        },
+        "relatedAddresses": [
+          "0xb2324d24adea0440574ec7a1ac858c7a5265b5f1",
+          "0x6ff5693b99212da76ad316178a184ab56d299b43"
+        ],
+        "transactionHashes": [
+          "0x3e37ebd050073391d8962adc364f014500d18fb571f09600f77d3fbfaa656233"
+        ],
+        "timeWindow": 3600
+      },
+      {
+        "address": "0xb2324d24adea0440574ec7a1ac858c7a5265b5f1",
+        "tokenAddress": "0x6ff5693b99212da76ad316178a184ab56d299b43",
+        "chain": "base",
+        "alertType": "PUMP_AND_DUMP",
+        "severity": "critical",
+        "riskScore": 95,
+        "timestamp": 1768818751,
+        "description": "Pump and dump scheme detected: Infinity% pump followed by -100.00% dump. Classic manipulation pattern.",
+        "priceChange": null,
+        "volumeSpike": 3.819301848049062,
+        "relatedAddresses": [
+          "0xb2324d24adea0440574ec7a1ac858c7a5265b5f1",
+          "0x6ff5693b99212da76ad316178a184ab56d299b43"
+        ],
+        "transactionHashes": [
+          "0x3b6aa44c767e911a80e3c26eb1fef054e39ea4bfa59d40637bb128d5c825dcef"
+        ],
+        "timeWindow": 0.2
+      },
+      {
+        "address": "0xb2324d24adea0440574ec7a1ac858c7a5265b5f1",
+        "tokenAddress": "0x6ff5693b99212da76ad316178a184ab56d299b43",
+        "chain": "base",
+        "alertType": "VOLUME_SPIKE",
+        "severity": "medium",
+        "riskScore": 57.289527720735926,
+        "timestamp": 1768818751,
+        "description": "Unusual volume spike detected: 3.82x average volume. Possible manipulation.",
+        "volumeSpike": 3.819301848049062,
+        "volumeAnalysis": {
+          "currentVolume": "1860000000000000",
+          "averageVolume": "487000000000028",
+          "volumeSpike": 3.819301848049062,
+          "volumeToMarketCapRatio": 0.5
+        },
+        "relatedAddresses": [
+          "0xb2324d24adea0440574ec7a1ac858c7a5265b5f1",
+          "0x6ff5693b99212da76ad316178a184ab56d299b43"
+        ],
+        "transactionHashes": [
+          "0x3b6aa44c767e911a80e3c26eb1fef054e39ea4bfa59d40637bb128d5c825dcef"
+        ],
+        "timeWindow": 3600
+      }
+    ],
+    "chainActivity": [
+      {
+        "chain": "ethereum",
+        "hasActivity": false,
+        "txCount": 0,
+        "balance": "0",
+        "rpc": "https://eth-mainnet.g.alchemy.com/v2/pUEDC3Q1lPd3K690-n8cV"
+      },
+      {
+        "chain": "polygon",
+        "hasActivity": false,
+        "txCount": 0,
+        "balance": "0",
+        "rpc": "https://polygon-rpc.com"
+      },
+      {
+        "chain": "bsc",
+        "hasActivity": false,
+        "txCount": 0,
+        "balance": "0",
+        "rpc": "https://rpc.ankr.com/bsc"
+      },
+      {
+        "chain": "arbitrum",
+        "hasActivity": false,
+        "txCount": 0,
+        "balance": "0",
+        "rpc": "https://arb1.arbitrum.io/rpc"
+      },
+      {
+        "chain": "optimism",
+        "hasActivity": false,
+        "txCount": 0,
+        "balance": "0",
+        "rpc": "https://mainnet.optimism.io"
+      },
+      {
+        "chain": "base",
+        "hasActivity": true,
+        "txCount": 7232,
+        "balance": "2601134788921215",
+        "rpc": "https://mainnet.base.org"
+      },
+      {
+        "chain": "avalanche-fuji",
+        "hasActivity": false,
+        "txCount": 0,
+        "balance": "0",
+        "rpc": "https://api.avax-test.network/ext/bc/C/rpc"
+      },
+      {
+        "chain": "sepolia",
+        "hasActivity": false,
+        "txCount": 0,
+        "balance": "0",
+        "rpc": "https://sepolia.drpc.org"
+      }
+    ],
+    "timestamp": 1768858908908,
+    "status": "flagged",
+    "workflowAnalysis": {
+      "triage": {
+        "fundedByBridge": false,
+        "fundedByMixer": false,
+        "baseRisk": 0
+      },
+      "dependencyMapping": {
+        "clusterMatch": false,
+        "relatedAddresses": [],
+        "hopDistance": 999
+      },
+      "behavioralClass": "Dormant/New",
+      "payloadInspection": {
+        "highRiskFunctions": [],
+        "contractVerified": false
+      },
+      "sarReady": false
+    },
+    "highRiskTransactions": [],
+    "sarText": "SAR Summary (fallback): Address 0xb2324d24adea0440574ec7a1ac858c7a5265b5f1 | Risk: 95/100 | Status: flagged | Cluster Match: false | SAR Ready: false"
+  }
+]

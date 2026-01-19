@@ -3,8 +3,11 @@
  * Provides functions to fetch real blockchain data from Etherscan
  */
 
-const ETHERSCAN_API_KEY = 'X8WZ9EXJSH9IM8XG8NH7UZDMFKEU9SKBWG';
-const ETHERSCAN_API_URL = 'https://api.etherscan.io/api';
+// Use environment variable for API key, fallback to hardcoded if not set
+const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY || 'X8WZ9EXJSH9IM8XG8NH7UZDMFKEU9SKBWG';
+// Etherscan API V2 endpoints (chainid=1 for Ethereum mainnet)
+const ETHERSCAN_API_URL = 'https://api.etherscan.io/v2/api';
+const ETHEREUM_CHAINID = '1'; // Ethereum mainnet
 
 interface EtherscanResponse<T> {
   status: string;
@@ -93,9 +96,9 @@ export async function getEthPrice(): Promise<number> {
     console.warn('CoinGecko fetch failed, trying Etherscan...', coingeckoError);
   }
   
-  // Fallback to Etherscan
+  // Fallback to Etherscan (V1 still works for stats)
   try {
-    const url = `${ETHERSCAN_API_URL}?module=stats&action=ethprice&apikey=${ETHERSCAN_API_KEY}`;
+    const url = `https://api.etherscan.io/api?module=stats&action=ethprice&apikey=${ETHERSCAN_API_KEY}`;
     console.log('Fetching ETH price from Etherscan...');
     const response = await fetch(url, {
       method: 'GET',
@@ -133,7 +136,8 @@ export async function getEthPrice(): Promise<number> {
  */
 export async function getGasPrices(): Promise<GasPriceResult> {
   try {
-    const url = `${ETHERSCAN_API_URL}?module=gastracker&action=gasoracle&apikey=${ETHERSCAN_API_KEY}`;
+    // Gas oracle still uses V1 API
+    const url = `https://api.etherscan.io/api?module=gastracker&action=gasoracle&apikey=${ETHERSCAN_API_KEY}`;
     const response = await fetch(url, {
       method: 'GET',
       headers: {
@@ -175,7 +179,8 @@ export async function getGasPrices(): Promise<GasPriceResult> {
  */
 export async function getLatestBlockNumber(): Promise<string> {
   try {
-    const url = `${ETHERSCAN_API_URL}?module=proxy&action=eth_blockNumber&apikey=${ETHERSCAN_API_KEY}`;
+    // Proxy endpoints still use V1 API
+    const url = `https://api.etherscan.io/api?module=proxy&action=eth_blockNumber&apikey=${ETHERSCAN_API_KEY}`;
     const response = await fetch(url, {
       method: 'GET',
       headers: {
@@ -219,21 +224,46 @@ export async function getAddressTransactions(
   sort: 'asc' | 'desc' = 'desc'
 ): Promise<Transaction[]> {
   try {
-    const response = await fetch(
-      `${ETHERSCAN_API_URL}?module=account&action=txlist&address=${address}&startblock=${startBlock}&endblock=${endBlock}&page=${page}&offset=${offset}&sort=${sort}&apikey=${ETHERSCAN_API_KEY}`
-    );
+    // Use V2 API with chainid parameter
+    const url = `${ETHERSCAN_API_URL}?module=account&action=txlist&address=${address}&startblock=${startBlock}&endblock=${endBlock}&page=${page}&offset=${offset}&sort=${sort}&chainid=${ETHEREUM_CHAINID}&apikey=${ETHERSCAN_API_KEY}`;
+    console.log(`📡 Fetching transactions from Etherscan V2 API for ${address}...`);
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
     const data: EtherscanResponse<Transaction[] | string> = await response.json();
     
     if (data.status === '1' && Array.isArray(data.result)) {
+      console.log(`✅ Fetched ${data.result.length} transactions from Etherscan`);
       return data.result;
     }
-    if (data.result === 'No transactions found') {
-      return [];
+    
+    if (data.status === '0') {
+      if (data.result === 'No transactions found' || data.message === 'No transactions found') {
+        console.log(`ℹ️ No transactions found for address ${address}`);
+        return [];
+      }
+      // Log API errors
+      console.error(`❌ Etherscan API error: ${data.message || 'Unknown error'}`);
+      if (data.message?.includes('rate limit') || data.message?.includes('Max rate limit')) {
+        throw new Error('Etherscan API rate limit exceeded. Please try again later.');
+      }
+      throw new Error(data.message || 'Failed to fetch transactions');
     }
+    
     throw new Error(typeof data.result === 'string' ? data.result : data.message || 'Failed to fetch transactions');
-  } catch (error) {
-    console.error('Error fetching transactions:', error);
-    throw error;
+  } catch (error: any) {
+    console.error('❌ Error fetching transactions:', error?.message || error);
+    // Don't throw, return empty array to allow fallback
+    return [];
   }
 }
 
@@ -249,21 +279,42 @@ export async function getTokenTransfers(
   sort: 'asc' | 'desc' = 'desc'
 ): Promise<TokenTransfer[]> {
   try {
-    const response = await fetch(
-      `${ETHERSCAN_API_URL}?module=account&action=tokentx&address=${address}&startblock=${startBlock}&endblock=${endBlock}&page=${page}&offset=${offset}&sort=${sort}&apikey=${ETHERSCAN_API_KEY}`
-    );
+    // Use V2 API with chainid parameter
+    const url = `${ETHERSCAN_API_URL}?module=account&action=tokentx&address=${address}&startblock=${startBlock}&endblock=${endBlock}&page=${page}&offset=${offset}&sort=${sort}&chainid=${ETHEREUM_CHAINID}&apikey=${ETHERSCAN_API_KEY}`;
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
     const data: EtherscanResponse<TokenTransfer[] | string> = await response.json();
     
     if (data.status === '1' && Array.isArray(data.result)) {
       return data.result;
     }
-    if (data.result === 'No transactions found') {
-      return [];
+    
+    if (data.status === '0') {
+      if (data.result === 'No transactions found' || data.message === 'No transactions found') {
+        return [];
+      }
+      console.error(`❌ Etherscan API error: ${data.message || 'Unknown error'}`);
+      if (data.message?.includes('rate limit') || data.message?.includes('Max rate limit')) {
+        throw new Error('Etherscan API rate limit exceeded. Please try again later.');
+      }
+      throw new Error(data.message || 'Failed to fetch token transfers');
     }
+    
     throw new Error(typeof data.result === 'string' ? data.result : data.message || 'Failed to fetch token transfers');
-  } catch (error) {
-    console.error('Error fetching token transfers:', error);
-    throw error;
+  } catch (error: any) {
+    console.error('❌ Error fetching token transfers:', error?.message || error);
+    // Don't throw, return empty array to allow fallback
+    return [];
   }
 }
 
@@ -272,9 +323,20 @@ export async function getTokenTransfers(
  */
 export async function getAccountBalance(address: string): Promise<string> {
   try {
-    const response = await fetch(
-      `${ETHERSCAN_API_URL}?module=account&action=balance&address=${address}&tag=latest&apikey=${ETHERSCAN_API_KEY}`
-    );
+    // Use V2 API with chainid parameter
+    const url = `${ETHERSCAN_API_URL}?module=account&action=balance&address=${address}&tag=latest&chainid=${ETHEREUM_CHAINID}&apikey=${ETHERSCAN_API_KEY}`;
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
     const data: EtherscanResponse<string> = await response.json();
     
     if (data.status === '1' && data.result) {
@@ -283,10 +345,16 @@ export async function getAccountBalance(address: string): Promise<string> {
       const eth = Number(wei) / 1e18;
       return eth.toString();
     }
+    
+    console.error(`❌ Etherscan balance error: ${data.message || 'Unknown error'}`);
+    if (data.message?.includes('rate limit') || data.message?.includes('Max rate limit')) {
+      throw new Error('Etherscan API rate limit exceeded. Please try again later.');
+    }
     throw new Error(data.message || 'Failed to fetch balance');
-  } catch (error) {
-    console.error('Error fetching balance:', error);
-    throw error;
+  } catch (error: any) {
+    console.error('❌ Error fetching balance:', error?.message || error);
+    // Return '0' as fallback instead of throwing
+    return '0';
   }
 }
 

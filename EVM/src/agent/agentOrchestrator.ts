@@ -49,6 +49,10 @@ export class AgentOrchestrator {
   private recentTransactions: Array<{
     hash: string;
     chain: string;
+    from?: string;
+    to?: string | null;
+    value?: bigint;
+    blockNumber?: bigint;
     riskScore: number;
     suspicious: boolean;
     timestamp: number;
@@ -272,6 +276,10 @@ export class AgentOrchestrator {
         this.recentTransactions.push({
           hash: tx.hash,
           chain: tx.chain,
+        from: tx.from,
+        to: tx.to,
+        value: tx.value,
+        blockNumber: tx.blockNumber,
           riskScore: analysis?.riskScore || 0,
           suspicious: analysis?.suspicious || false,
           timestamp: tx.timestamp * 1000,
@@ -466,6 +474,10 @@ export class AgentOrchestrator {
   getRecentTransactions(limit: number = 10): Array<{
     hash: string;
     chain: string;
+    from?: string;
+    to?: string | null;
+    value?: bigint;
+    blockNumber?: bigint;
     riskScore: number;
     suspicious: boolean;
     timestamp: number;

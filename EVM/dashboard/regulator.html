@@ -122,6 +122,175 @@
             color: #991b1b;
         }
 
+        /* Unified blockchain-monitor theme across the app */
+        :root {
+            --bg-1: #F7F9FB;      /* page background */
+            --bg-2: #FFFFFF;      /* surface */
+            --card-bg: #FFFFFF;   /* card surface */
+            --card-border: #E0E6ED;
+            --text-primary: #333333; /* charcoal body text */
+            --text-muted: #4B5563;
+            --accent: #001F3F;    /* deep navy headings/links */
+            --accent-2: #4B0082;  /* dark purple alt accent */
+            --success: #228B22;   /* forest green */
+            --warning: #B26B00;   /* muted amber */
+        }
+
+        body {
+            background: var(--bg-1) !important;
+            color: var(--text-primary);
+        }
+
+        .container {
+            color: var(--text-primary);
+        }
+
+        .card, .tab-content .card {
+            background: var(--card-bg) !important;
+            border: 1px solid var(--card-border) !important;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08) !important;
+            color: var(--text-primary) !important;
+        }
+
+        .card h2, h2.section-title, .section-title {
+            color: var(--accent) !important;
+        }
+
+        /* Default readable text: make all non-header text light */
+        .card *:not(h1):not(h2):not(h3):not(h4):not(h5):not(h6),
+        .tab-content *:not(h1):not(h2):not(h3):not(h4):not(h5):not(h6),
+        p, span, li, label, input, select, textarea, div {
+            color: var(--text-primary) !important;
+        }
+
+        .metric-large, .status-badge, .alert-banner, .header, .grid .metric-label {
+            color: var(--text-primary) !important;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #FFFFFF 0%, #E9EEF5 60%, var(--accent) 100%) !important;
+            border-left: 6px solid var(--accent) !important;
+            color: var(--text-primary);
+        }
+
+        .alert-banner {
+            background: rgba(251, 191, 36, 0.12) !important;
+            border-left: 4px solid var(--warning) !important;
+            color: var(--text-primary) !important;
+        }
+
+        .alert-banner.critical {
+            background: rgba(239, 68, 68, 0.12) !important;
+            border-left-color: #ef4444 !important;
+        }
+
+        .tab-content {
+            background: transparent !important;
+            color: var(--text-primary);
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            color: var(--text-primary);
+        }
+
+        p, span, li, label, input, select, textarea {
+            color: var(--text-primary);
+        }
+
+        input, select, textarea {
+            background: var(--bg-2);
+            border: 1px solid var(--card-border);
+            border-radius: 6px;
+            padding: 8px 10px;
+            color: var(--text-primary);
+        }
+
+        button {
+            background: var(--accent) !important;
+            color: white !important;
+            border: 1px solid rgba(96, 165, 250, 0.5) !important;
+            border-radius: 6px;
+        }
+
+        .status-healthy { background: rgba(16, 185, 129, 0.15) !important; color: #22c55e !important; }
+        .status-moderate { background: rgba(245, 158, 11, 0.15) !important; color: #f59e0b !important; }
+        .status-at-risk { background: rgba(249, 115, 22, 0.15) !important; color: #f97316 !important; }
+        .status-critical { background: rgba(239, 68, 68, 0.15) !important; color: #ef4444 !important; }
+
+        /* Fix low-contrast inline panels */
+        #investigationResults [style*="background: white"],
+        .card [style*="background: white"] {
+            background: var(--card-bg) !important;
+            color: var(--text-primary) !important;
+            border-color: var(--card-border) !important;
+        }
+        #investigationResults [style*="color: #6b7280"],
+        #investigationResults [style*="color: #9ca3af"],
+        #investigationResults [style*="color: #94a3b8"] {
+            color: var(--text-primary) !important;
+        }
+        #investigationResults a {
+            color: var(--accent) !important;
+        }
+
+        /* Kill yellow gradients/inline backgrounds */
+        [style*="background: #fef3c7"],
+        [style*="background: #fff4cc"],
+        [style*="background: #fffbe6"],
+        [style*="background: #fff9c4"],
+        [style*="background: #fdf6b2"],
+        [style*="background: #fef9c3"],
+        [style*="background: linear-gradient"][style*="fff"] {
+            background: var(--card-bg) !important;
+            color: var(--text-primary) !important;
+            border-color: var(--card-border) !important;
+        }
+        [style*="color: #f59e0b"],
+        [style*="color: #d97706"],
+        [style*="color: #b45309"] {
+            color: var(--text-primary) !important;
+        }
+
+        /* Force readability for pale panels: risk factors, opportunities, alerts */
+        [style*="background: #fef2f2"],
+        [style*="background: #fee2e2"],
+        [style*="background: #fff1f2"],
+        [style*="background: #fefce8"],
+        [style*="background: #ecfeff"],
+        [style*="background: #f0fdf4"],
+        [style*="background: #f5f3ff"],
+        [style*="background: #eef2ff"],
+        [style*="background: #dbeafe"],
+        [style*="background: #e0f2fe"],
+        [style*="background: #e0f7fa"],
+        [style*="background: #f1f5f9"],
+        [style*="background: #e5e7eb"],
+        [style*="background: #e2e8f0"],
+        [style*="background: #faf5ff"] {
+            background: var(--card-bg) !important;
+            color: var(--text-primary) !important;
+            border-color: var(--card-border) !important;
+        }
+
+        /* Text overrides for muted/light text */
+        [style*="color: #6b7280"],
+        [style*="color: #9ca3af"],
+        [style*="color: #a1a1aa"],
+        [style*="color: #94a3b8"],
+        [style*="color: #d1d5db"],
+        [style*="color: #cbd5e1"] {
+            color: var(--text-primary) !important;
+        }
+
+        /* Badge/chip text */
+        [style*="color: #0ea5e9"],
+        [style*="color: #22c55e"],
+        [style*="color: #10b981"],
+        [style*="color: #a855f7"],
+        [style*="color: #9333ea"] {
+            color: var(--accent) !important;
+        }
+
         .progress-bar {
             width: 100%;
             height: 30px;
@@ -446,6 +615,8 @@
             display: block;
         }
     </style>
+    <!-- vis-network for interactive graph visualization -->
+    <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -797,7 +968,7 @@
             <div class="card" style="margin-bottom: 20px; border: 2px solid #10b981; background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                     <h2 class="section-title" style="color: #10b981; margin: 0;">📰 Latest Crypto News</h2>
-                    <button onclick="loadCryptoNews()" style="padding: 10px 20px; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px;">
+                    <button onclick="loadCryptoNews(true)" style="padding: 10px 20px; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px;">
                         🔄 Refresh News
                     </button>
                 </div>
@@ -816,29 +987,33 @@
             </div>
         </div>
 
-        <!-- Blockchain Monitor Tab - Bitcoin Data Analysis Style -->
+        <!-- Blockchain Monitor Tab - Light, high-contrast palette -->
         <div id="tab-content-blockchain-monitor" class="tab-content" style="display: none;">
             <style>
-                /* Dark theme for blockchain monitor - completely different from other tabs */
+                /* Light theme for blockchain monitor aligned with regulator palette */
                 #tab-content-blockchain-monitor {
-                    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+                    background: linear-gradient(135deg, var(--bg-1) 0%, #E9EEF5 60%, #FFFFFF 100%);
                     padding: 20px;
                     border-radius: 12px;
                     min-height: 100vh;
+                    color: var(--text-primary);
+                }
+
+                #tab-content-blockchain-monitor * {
+                    color: var(--text-primary);
                 }
                 
                 .blockchain-card {
-                    background: rgba(15, 23, 42, 0.8);
-                    border: 1px solid rgba(148, 163, 184, 0.2);
+                    background: var(--card-bg);
+                    border: 1px solid var(--card-border);
                     border-radius: 12px;
                     padding: 24px;
                     margin-bottom: 20px;
-                    backdrop-filter: blur(10px);
-                    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+                    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
                 }
                 
                 .blockchain-card h2 {
-                    color: #60a5fa;
+                    color: var(--accent);
                     font-size: 22px;
                     margin-bottom: 20px;
                     display: flex;
@@ -857,8 +1032,8 @@
                 }
                 
                 .stat-box {
-                    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(147, 51, 234, 0.1) 100%);
-                    border: 1px solid rgba(96, 165, 250, 0.3);
+                    background: linear-gradient(135deg, rgba(0, 31, 63, 0.07) 0%, rgba(75, 0, 130, 0.06) 100%);
+                    border: 1px solid rgba(0, 31, 63, 0.18);
                     border-radius: 8px;
                     padding: 20px;
                     text-align: center;
@@ -871,7 +1046,7 @@
                 }
                 
                 .stat-box-label {
-                    color: #94a3b8;
+                    color: var(--text-muted);
                     font-size: 12px;
                     text-transform: uppercase;
                     letter-spacing: 0.5px;
@@ -879,14 +1054,14 @@
                 }
                 
                 .stat-box-value {
-                    color: #60a5fa;
+                    color: var(--accent);
                     font-size: 32px;
                     font-weight: bold;
                     font-family: 'Courier New', monospace;
                 }
                 
                 .stat-box-change {
-                    color: #10b981;
+                    color: var(--success);
                     font-size: 11px;
                     margin-top: 5px;
                 }
@@ -898,26 +1073,26 @@
                 }
                 
                 .blockchain-table th {
-                    background: rgba(59, 130, 246, 0.2);
-                    color: #60a5fa;
+                    background: #E9EEF5;
+                    color: var(--accent);
                     padding: 12px;
                     text-align: left;
                     font-size: 12px;
                     text-transform: uppercase;
                     letter-spacing: 0.5px;
-                    border-bottom: 2px solid rgba(96, 165, 250, 0.3);
+                    border-bottom: 2px solid var(--card-border);
                 }
                 
                 .blockchain-table td {
-                    color: #cbd5e1;
+                    color: var(--text-primary);
                     padding: 12px;
-                    border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+                    border-bottom: 1px solid var(--card-border);
                     font-family: 'Courier New', monospace;
                     font-size: 13px;
                 }
                 
                 .blockchain-table tr:hover {
-                    background: rgba(96, 165, 250, 0.05);
+                    background: rgba(0, 31, 63, 0.05);
                 }
                 
                 .chain-selector {
@@ -929,23 +1104,23 @@
                 
                 .chain-btn {
                     padding: 10px 20px;
-                    background: rgba(59, 130, 246, 0.2);
-                    border: 1px solid rgba(96, 165, 250, 0.3);
+                    background: var(--bg-2);
+                    border: 1px solid var(--card-border);
                     border-radius: 6px;
-                    color: #60a5fa;
+                    color: var(--accent);
                     cursor: pointer;
                     font-weight: 500;
                     transition: all 0.2s;
                 }
                 
                 .chain-btn:hover {
-                    background: rgba(59, 130, 246, 0.3);
-                    border-color: #60a5fa;
+                    background: linear-gradient(135deg, rgba(0, 31, 63, 0.08) 0%, rgba(75, 0, 130, 0.08) 100%);
+                    border-color: rgba(0, 31, 63, 0.25);
                 }
                 
                 .chain-btn.active {
-                    background: linear-gradient(135deg, #3b82f6 0%, #9333ea 100%);
-                    border-color: #60a5fa;
+                    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+                    border-color: rgba(0, 31, 63, 0.25);
                     color: white;
                 }
                 
@@ -957,8 +1132,8 @@
                 }
                 
                 .block-item {
-                    background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(147, 51, 234, 0.15) 100%);
-                    border: 1px solid rgba(96, 165, 250, 0.3);
+                    background: linear-gradient(135deg, rgba(0, 31, 63, 0.08) 0%, rgba(75, 0, 130, 0.07) 100%);
+                    border: 1px solid rgba(0, 31, 63, 0.2);
                     border-radius: 6px;
                     padding: 12px;
                     text-align: center;
@@ -971,14 +1146,14 @@
                 }
                 
                 .block-number {
-                    color: #60a5fa;
+                    color: var(--accent);
                     font-size: 14px;
                     font-weight: bold;
                     font-family: 'Courier New', monospace;
                 }
                 
                 .block-tx-count {
-                    color: #10b981;
+                    color: var(--success);
                     font-size: 11px;
                     margin-top: 5px;
                 }
@@ -988,8 +1163,8 @@
                     align-items: center;
                     gap: 15px;
                     padding: 15px;
-                    background: rgba(16, 185, 129, 0.1);
-                    border: 1px solid rgba(16, 185, 129, 0.3);
+                    background: rgba(34, 139, 34, 0.12);
+                    border: 1px solid rgba(34, 139, 34, 0.25);
                     border-radius: 8px;
                     margin-top: 15px;
                 }
@@ -998,7 +1173,7 @@
                     width: 12px;
                     height: 12px;
                     border-radius: 50%;
-                    background: #10b981;
+                    background: var(--success);
                     animation: pulse 2s infinite;
                 }
                 
@@ -1008,8 +1183,8 @@
                 }
                 
                 .chart-container {
-                    background: rgba(15, 23, 42, 0.6);
-                    border: 1px solid rgba(148, 163, 184, 0.2);
+                    background: var(--card-bg);
+                    border: 1px solid var(--card-border);
                     border-radius: 8px;
                     padding: 15px;
                     margin-top: 15px;
@@ -1026,9 +1201,30 @@
                     margin-left: 8px;
                 }
                 
-                .badge-success { background: rgba(16, 185, 129, 0.2); color: #10b981; }
-                .badge-warning { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
-                .badge-danger { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+                .badge-success { background: rgba(34, 139, 34, 0.15); color: var(--success); }
+                .badge-warning { background: rgba(178, 107, 0, 0.15); color: var(--warning); }
+                .badge-danger { background: rgba(176, 0, 32, 0.15); color: #B00020; }
+
+                /* Normalize any remaining dark inline backgrounds inside the monitor tab */
+                #tab-content-blockchain-monitor [style*="rgba(15, 23, 42"],
+                #tab-content-blockchain-monitor [style*="#0f172a"],
+                #tab-content-blockchain-monitor [style*="#1e293b"] {
+                    background: var(--card-bg) !important;
+                    color: var(--text-primary) !important;
+                    border-color: var(--card-border) !important;
+                }
+                #tab-content-blockchain-monitor [style*="color: #94a3b8"],
+                #tab-content-blockchain-monitor [style*="color: #cbd5e1"],
+                #tab-content-blockchain-monitor [style*="color: #9ca3af"] {
+                    color: var(--text-primary) !important;
+                }
+                #tab-content-blockchain-monitor input,
+                #tab-content-blockchain-monitor select,
+                #tab-content-blockchain-monitor textarea {
+                    background: var(--bg-2) !important;
+                    border: 1px solid var(--card-border) !important;
+                    color: var(--text-primary) !important;
+                }
             </style>
             
             <!-- Network Overview -->
@@ -3136,14 +3332,109 @@
             resultsEl.innerHTML = '<div style="text-align: center; padding: 30px; color: #94a3b8;"><div style="font-size: 24px; margin-bottom: 10px;">🔍</div>Investigating address with BlockExplorer and Gemini AI...<br><span style="font-size: 11px; color: #64748b;">This may take a few moments</span></div>';
             
             try {
-                // Use new investigation endpoint with Gemini AI
-                const response = await fetch(`/api/investigation/address/${address}`);
+                // Try multiple endpoints in parallel for better data
+                const [investigationResponse, liveResponse] = await Promise.allSettled([
+                    fetch(`/api/investigation/address/${address}`),
+                    fetch(`/api/address/${address}/live`)
+                ]);
                 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                let data = null;
+                let liveData = null;
+                
+                // Check investigation response
+                if (investigationResponse.status === 'fulfilled') {
+                    if (investigationResponse.value.ok) {
+                        try {
+                            data = await investigationResponse.value.json();
+                            console.log('✅ Investigation data received:', {
+                                transactionCount: data?.transactionCount || 0,
+                                hasTransactions: !!(data?.transactions && data.transactions.length > 0),
+                                address: data?.address
+                            });
+                        } catch (jsonError) {
+                            console.error('❌ Failed to parse investigation JSON:', jsonError);
+                        }
+                    } else {
+                        console.error('❌ Investigation endpoint returned error:', investigationResponse.value.status, investigationResponse.value.statusText);
+                    }
+                } else {
+                    console.error('❌ Investigation request failed:', investigationResponse.reason);
                 }
                 
-                const data = await response.json();
+                // Check live response
+                if (liveResponse.status === 'fulfilled') {
+                    if (liveResponse.value.ok) {
+                        try {
+                            liveData = await liveResponse.value.json();
+                            console.log('✅ Live data received:', {
+                                transactionCount: liveData?.count || 0,
+                                realTimeCount: liveData?.realTimeCount || 0,
+                                etherscanCount: liveData?.etherscanCount || 0
+                            });
+                        } catch (jsonError) {
+                            console.error('❌ Failed to parse live JSON:', jsonError);
+                        }
+                    } else {
+                        console.error('❌ Live endpoint returned error:', liveResponse.value.status, liveResponse.value.statusText);
+                    }
+                } else {
+                    console.error('❌ Live request failed:', liveResponse.reason);
+                }
+                
+                // Merge data from both sources
+                if (liveData && liveData.transactions && liveData.transactions.length > 0) {
+                    if (!data) {
+                        data = { 
+                            address: address,
+                            transactions: [], 
+                            transactionCount: 0,
+                            balance: '0',
+                            tokenTransferCount: 0
+                        };
+                    }
+                    const existingHashes = new Set((data.transactions || []).map(t => t.hash));
+                    liveData.transactions.forEach(tx => {
+                        if (!existingHashes.has(tx.hash)) {
+                            data.transactions.push({
+                                hash: tx.hash,
+                                from: tx.from,
+                                to: tx.to,
+                                value: tx.value,
+                                timeStamp: tx.timestamp ? Math.floor(tx.timestamp / 1000).toString() : Math.floor(Date.now() / 1000).toString(),
+                                chain: tx.chain || 'ethereum',
+                            });
+                        }
+                    });
+                    data.transactionCount = data.transactions.length;
+                    console.log(`✅ Merged ${liveData.realTimeCount} real-time transactions with ${liveData.etherscanCount} Etherscan transactions`);
+                }
+                
+                // Use data even if it has no transactions (address might be new or inactive)
+                if (!data) {
+                    // If both failed, create a minimal data object
+                    data = {
+                        address: address,
+                        balance: '0',
+                        transactionCount: 0,
+                        tokenTransferCount: 0,
+                        transactions: [],
+                        error: 'No data available from Etherscan or real-time monitoring'
+                    };
+                }
+                
+                // Ensure transactions is always an array
+                if (!Array.isArray(data.transactions)) {
+                    data.transactions = [];
+                }
+                
+                console.log('Investigation data:', {
+                    transactionCount: data.transactionCount,
+                    transactionsLength: data.transactions?.length || 0,
+                    hasAnalysis: !!data.analysis,
+                    hasAI: !!data.aiInvestigation,
+                    address: data.address
+                });
+                
                 displayInvestigationResults(data);
             } catch (error) {
                 console.error('Investigation error:', error);
@@ -3161,6 +3452,8 @@
             const riskScore = aiAnalysis.riskScore || data.analysis?.riskScore || 0;
             const riskLevel = riskScore >= 70 ? 'HIGH' : riskScore >= 40 ? 'MEDIUM' : 'LOW';
             const riskColor = riskScore >= 70 ? '#ef4444' : riskScore >= 40 ? '#f59e0b' : '#10b981';
+            const status = (data.status || (riskScore <= 20 ? 'CLEARED' : 'FLAGGED')).toUpperCase();
+            const statusColor = status === 'CLEARED' ? '#10b981' : '#ef4444';
             
             resultsEl.innerHTML = `
                 <div style="background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(96, 165, 250, 0.3); border-radius: 8px; padding: 20px;">
@@ -3181,11 +3474,29 @@
                             <div style="color: #94a3b8; font-size: 11px; margin-bottom: 5px;">RISK SCORE</div>
                             <div style="color: ${riskColor}; font-size: 24px; font-weight: bold;">${riskScore}</div>
                             <div style="color: ${riskColor}; font-size: 11px; margin-top: 5px;">${riskLevel} RISK</div>
+                            <div style="margin-top: 8px;">
+                                <span style="background: ${status === 'CLEARED' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)'}; color: ${statusColor}; padding: 6px 10px; border-radius: 12px; font-size: 11px; font-weight: bold; letter-spacing: 0.5px;">
+                                    ${status}
+                                </span>
+                            </div>
                         </div>
                         <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(96, 165, 250, 0.3); border-radius: 6px; padding: 15px;">
                             <div style="color: #94a3b8; font-size: 11px; margin-bottom: 5px;">TRANSACTIONS</div>
                             <div style="color: #cbd5e1; font-size: 18px; font-weight: bold;">${data.transactionCount || 0}</div>
                         </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 16px;">
+                        <button onclick="generateSarReport('${data.address || ''}')" style="background: #4ade80; color: #0f172a; font-weight: bold; border: none; padding: 10px 14px; border-radius: 6px; cursor: pointer;">
+                            Generate SAR Summary & Download DOCX
+                        </button>
+                        <span id="sarStatus" style="margin-left: 10px; color: #94a3b8; font-size: 12px;"></span>
+                    </div>
+                    
+                    <div id="sarSection" style="display: none; background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(148, 163, 184, 0.2); border-radius: 8px; padding: 15px; margin-bottom: 15px;">
+                        <div style="color: #facc15; font-weight: bold; margin-bottom: 8px;">SAR Summary</div>
+                        <div id="sarText" style="color: #cbd5e1; font-size: 13px; line-height: 1.6;"></div>
+                        <div id="sarDownload" style="margin-top: 10px;"></div>
                     </div>
                     
                     ${aiAnalysis.summary ? `
@@ -3216,6 +3527,44 @@
                     </div>
                     ` : ''}
                     
+                    ${data.externalReputation && data.externalReputation.length > 0 ? `
+                    <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 6px; padding: 15px; margin-bottom: 15px;">
+                        <div style="color: #ef4444; font-weight: bold; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                            🛑 External Reputation Hits
+                        </div>
+                        <ul style="color: #cbd5e1; font-size: 12px; margin-left: 20px; list-style: disc;">
+                            ${data.externalReputation.map(rep => `
+                                <li>
+                                    <strong>${rep.label}</strong> (${rep.severity || 'unknown'}) <span style="color: #94a3b8;">[${rep.source}]</span>
+                                    ${rep.note ? `<div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">${rep.note}</div>` : ''}
+                                </li>
+                            `).join('')}
+                        </ul>
+                    </div>
+                    ` : ''}
+                    
+                    ${data.incidentIntel ? `
+                    <div style="background: rgba(255, 255, 0, 0.08); border: 1px solid rgba(234, 179, 8, 0.4); border-radius: 6px; padding: 15px; margin-bottom: 15px;">
+                        <div style="color: #facc15; font-weight: bold; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                            🚨 Known Incident
+                        </div>
+                        <div style="color: #cbd5e1; font-size: 13px; line-height: 1.5; margin-bottom: 8px;">
+                            <strong>${data.incidentIntel.title}</strong> (${data.incidentIntel.severity || 'unknown'})
+                        </div>
+                        <div style="color: #94a3b8; font-size: 12px; line-height: 1.5; margin-bottom: 8px;">
+                            ${data.incidentIntel.summary || 'No summary available'}
+                        </div>
+                        ${data.incidentIntel.related && data.incidentIntel.related.length > 0 ? `
+                        <div style="margin-top: 8px;">
+                            <div style="color: #cbd5e1; font-size: 12px; margin-bottom: 6px;">Related Addresses:</div>
+                            <ul style="color: #cbd5e1; font-size: 12px; margin-left: 20px; list-style: disc;">
+                                ${data.incidentIntel.related.map(addr => `<li style="margin-bottom: 4px;">${addr}</li>`).join('')}
+                            </ul>
+                        </div>
+                        ` : ''}
+                    </div>
+                    ` : ''}
+                    
                     ${data.analysis?.suspicious ? `
                     <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 6px; padding: 15px; margin-bottom: 15px;">
                         <div style="color: #ef4444; font-weight: bold; margin-bottom: 10px;">⚠️ SUSPICIOUS ACTIVITY DETECTED</div>
@@ -3237,16 +3586,65 @@
                                             ${tx.hash}
                                         </a>
                                     </div>
-                                    <div style="display: flex; justify-content: space-between; font-size: 11px; color: #94a3b8;">
-                                        <span>From: ${tx.from?.substring(0, 10)}...${tx.from?.substring(tx.from.length - 8)}</span>
-                                        <span>${(parseFloat(tx.value || 0) / 1e18).toFixed(6)} ETH</span>
+                                    <div style="display: flex; justify-content: space-between; font-size: 11px; color: #94a3b8; margin-bottom: 5px;">
+                                        <span>From: ${tx.from ? (tx.from.substring(0, 10) + '...' + tx.from.substring(tx.from.length - 8)) : 'N/A'}</span>
+                                        <span style="color: #60a5fa; font-weight: bold;">
+                                            ${(() => {
+                                                try {
+                                                    const value = typeof tx.value === 'string' ? BigInt(tx.value || '0') : BigInt(tx.value || 0);
+                                                    return (Number(value) / 1e18).toFixed(6);
+                                                } catch {
+                                                    return '0.000000';
+                                                }
+                                            })()} ETH
+                                        </span>
                                     </div>
+                                    ${tx.to ? `<div style="font-size: 11px; color: #94a3b8; margin-bottom: 3px;">To: ${tx.to.substring(0, 10)}...${tx.to.substring(tx.to.length - 8)}</div>` : ''}
+                                    ${tx.chain ? `<div style="font-size: 10px; color: #a855f7; margin-top: 3px;">Chain: ${tx.chain}</div>` : ''}
+                                    ${tx.timeStamp ? `<div style="font-size: 10px; color: #64748b; margin-top: 3px;">${new Date(parseInt(tx.timeStamp) * 1000).toLocaleString()}</div>` : ''}
                                 </div>
                             `).join('') || '<div style="color: #94a3b8; text-align: center; padding: 20px;">No transactions found</div>'}
                         </div>
                     </div>
                 </div>
             `;
+        }
+
+        async function generateSarReport(address) {
+            const sarStatus = document.getElementById('sarStatus');
+            const sarSection = document.getElementById('sarSection');
+            const sarText = document.getElementById('sarText');
+            const sarDownload = document.getElementById('sarDownload');
+
+            if (!address || !address.startsWith('0x')) {
+                alert('Please enter a valid address first.');
+                return;
+            }
+
+            sarStatus.textContent = 'Generating SAR summary...';
+            sarSection.style.display = 'none';
+            sarText.textContent = '';
+            sarDownload.innerHTML = '';
+
+            try {
+                const response = await fetch(`/api/investigation/sar/${address}`);
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ error: `HTTP ${response.status}: ${response.statusText}` }));
+                    throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+                }
+                const data = await response.json();
+                
+                sarStatus.textContent = 'SAR ready';
+                sarSection.style.display = 'block';
+                sarText.textContent = data.sarText || 'No SAR text returned.';
+                const downloadLink = `/api/investigation/sar/${address}?download=true`;
+                sarDownload.innerHTML = `<a href="${downloadLink}" style="color: #4ade80; text-decoration: underline;" download>SAR DOCX (download)</a>`;
+            } catch (error) {
+                sarStatus.textContent = '';
+                sarSection.style.display = 'block';
+                sarText.textContent = `Error: ${error.message || error}`;
+                sarDownload.innerHTML = '';
+            }
         }
         
         async function traceTransaction() {
@@ -3280,76 +3678,610 @@
             }
         }
         
-        function runTaintAnalysis() {
+        async function runTaintAnalysis() {
             const input = document.getElementById('investigationAddressInput');
             const address = input.value.trim();
             
-            if (!address) {
-                alert('Please enter an address to analyze');
+            if (!address || !address.startsWith('0x')) {
+                alert('Please enter a valid Ethereum address');
                 return;
             }
             
-            alert('Taint Analysis: This feature traces fund contamination paths from source addresses. Analysis would show how funds flow through the network and identify potential connections to suspicious sources.');
+            const resultsEl = document.getElementById('investigationResults');
+            resultsEl.style.display = 'block';
+            resultsEl.innerHTML = '<div style="text-align: center; padding: 30px; color: #94a3b8;"><div style="font-size: 24px; margin-bottom: 10px;">🔍</div>Running Taint Analysis...</div>';
+            
+            try {
+                const response = await fetch(`/api/investigation/taint/${address}`);
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ error: `HTTP ${response.status}: ${response.statusText}` }));
+                    throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+                }
+                const data = await response.json();
+                
+                let html = `
+                    <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px; padding: 20px; margin-bottom: 15px;">
+                        <h3 style="color: #ef4444; margin-bottom: 15px;">🧬 Taint Analysis Results</h3>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 15px;">
+                            <div style="background: rgba(15, 23, 42, 0.6); padding: 15px; border-radius: 6px;">
+                                <div style="color: #94a3b8; font-size: 12px; margin-bottom: 5px;">Source Addresses</div>
+                                <div style="color: #60a5fa; font-size: 24px; font-weight: bold;">${data.totalSources || 0}</div>
+                            </div>
+                            <div style="background: rgba(15, 23, 42, 0.6); padding: 15px; border-radius: 6px;">
+                                <div style="color: #94a3b8; font-size: 12px; margin-bottom: 5px;">Destination Addresses</div>
+                                <div style="color: #60a5fa; font-size: 24px; font-weight: bold;">${data.totalDestinations || 0}</div>
+                            </div>
+                        </div>
+                        ${data.sourceAddresses && data.sourceAddresses.length > 0 ? `
+                            <div style="margin-top: 15px;">
+                                <h4 style="color: #ef4444; font-size: 14px; margin-bottom: 10px;">Source Addresses (Top 20):</h4>
+                                <div style="max-height: 300px; overflow-y: auto; background: rgba(15, 23, 42, 0.6); padding: 10px; border-radius: 6px;">
+                                    ${data.sourceAddresses.slice(0, 20).map(addr => `
+                                        <div style="padding: 8px; margin-bottom: 5px; background: rgba(239, 68, 68, 0.1); border-radius: 4px; font-family: monospace; font-size: 11px; color: #cbd5e1;">
+                                            <a href="https://etherscan.io/address/${addr}" target="_blank" style="color: #60a5fa; text-decoration: none;">${addr}</a>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+                resultsEl.innerHTML = html;
+            } catch (error) {
+                resultsEl.innerHTML = `<div style="padding: 20px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px; color: #ef4444;">
+                    <strong>❌ Error:</strong> ${error.message || 'Failed to run taint analysis'}
+                </div>`;
+            }
         }
         
-        function runAddressClustering() {
+        async function runAddressClustering() {
             const input = document.getElementById('investigationAddressInput');
             const address = input.value.trim();
             
-            if (!address) {
-                alert('Please enter an address to cluster');
+            if (!address || !address.startsWith('0x')) {
+                alert('Please enter a valid Ethereum address');
                 return;
             }
             
-            alert('Address Clustering: This feature identifies related addresses that likely belong to the same entity or wallet cluster. It uses heuristics like shared inputs, change addresses, and transaction patterns.');
+            const resultsEl = document.getElementById('investigationResults');
+            resultsEl.style.display = 'block';
+            resultsEl.innerHTML = '<div style="text-align: center; padding: 30px; color: #94a3b8;"><div style="font-size: 24px; margin-bottom: 10px;">🔗</div>Clustering Addresses...</div>';
+            
+            try {
+                const response = await fetch(`/api/investigation/cluster/${address}`);
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ error: `HTTP ${response.status}: ${response.statusText}` }));
+                    throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+                }
+                const data = await response.json();
+                
+                let html = `
+                    <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(96, 165, 250, 0.3); border-radius: 8px; padding: 20px; margin-bottom: 15px;">
+                        <h3 style="color: #60a5fa; margin-bottom: 15px;">🔗 Address Clustering Results</h3>
+                        <div style="background: rgba(15, 23, 42, 0.6); padding: 15px; border-radius: 6px; margin-bottom: 15px;">
+                            <div style="color: #94a3b8; font-size: 12px; margin-bottom: 5px;">Related Addresses Found</div>
+                            <div style="color: #60a5fa; font-size: 24px; font-weight: bold;">${data.clusterCount || 0}</div>
+                        </div>
+                        ${data.clusters && data.clusters.length > 0 ? `
+                            <div style="max-height: 400px; overflow-y: auto;">
+                                ${data.clusters.map(cluster => `
+                                    <div style="padding: 12px; margin-bottom: 8px; background: rgba(15, 23, 42, 0.6); border-radius: 6px; border-left: 3px solid #60a5fa;">
+                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                                            <a href="https://etherscan.io/address/${cluster.address}" target="_blank" 
+                                               style="color: #60a5fa; font-family: monospace; font-size: 11px; text-decoration: none;">${cluster.address}</a>
+                                            <span style="background: rgba(59, 130, 246, 0.2); color: #60a5fa; padding: 3px 8px; border-radius: 4px; font-size: 10px;">
+                                                Strength: ${cluster.connectionStrength}
+                                            </span>
+                                        </div>
+                                        <div style="color: #94a3b8; font-size: 11px;">Type: ${cluster.clusterType}</div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : '<div style="color: #94a3b8; text-align: center; padding: 20px;">No related addresses found</div>'}
+                    </div>
+                `;
+                resultsEl.innerHTML = html;
+            } catch (error) {
+                resultsEl.innerHTML = `<div style="padding: 20px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px; color: #ef4444;">
+                    <strong>❌ Error:</strong> ${error.message || 'Failed to cluster addresses'}
+                </div>`;
+            }
         }
         
-        function visualizeFlow() {
+        let flowNetwork = null;
+        let flowNetworkData = null;
+        let selectedFlowNode = null;
+
+        async function visualizeFlow() {
             const input = document.getElementById('investigationAddressInput');
             const address = input.value.trim();
             
-            if (!address) {
-                alert('Please enter an address to visualize');
+            if (!address || !address.startsWith('0x')) {
+                alert('Please enter a valid Ethereum address');
                 return;
             }
             
-            alert('Flow Visualization: This feature generates interactive graph visualizations of transaction flows, showing relationships between addresses and the movement of funds. Visual graphs help identify patterns and connections.');
+            const resultsEl = document.getElementById('investigationResults');
+            resultsEl.style.display = 'block';
+            resultsEl.innerHTML = '<div style="text-align: center; padding: 30px; color: #94a3b8;"><div style="font-size: 24px; margin-bottom: 10px;">📊</div>Generating Flow Graph...</div>';
+            
+            try {
+                const response = await fetch(`/api/investigation/flow/${address}`);
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ error: `HTTP ${response.status}: ${response.statusText}` }));
+                    throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+                }
+                const data = await response.json();
+                flowNetworkData = data;
+                
+                // Prepare nodes for vis-network
+                const targetAddress = address.toLowerCase();
+                const visNodes = data.nodes.map(node => {
+                    const nodeId = node.id || node.address;
+                    const isTarget = nodeId.toLowerCase() === targetAddress;
+                    const nodeType = node.type || (isTarget ? 'target' : 'source');
+                    
+                    // Color based on type
+                    let color = '#60a5fa'; // Blue for target
+                    if (nodeType === 'source') color = '#f97316'; // Orange for sources
+                    if (nodeType === 'destination') color = '#10b981'; // Green for destinations
+                    
+                    return {
+                        id: nodeId,
+                        label: `${node.displayValue || '0'}`,
+                        title: `${node.address}\\nBalance: ${(BigInt(node.balance || '0') / BigInt('1000000000000000000')).toString()} ETH`,
+                        color: {
+                            background: color,
+                            border: isTarget ? '#ffffff' : color,
+                            highlight: {
+                                background: color,
+                                border: '#ffffff'
+                            }
+                        },
+                        shape: 'dot',
+                        size: isTarget ? 30 : 20,
+                        font: { color: '#ffffff', size: 14, face: 'Arial' },
+                        data: node
+                    };
+                });
+                
+                // Prepare edges for vis-network
+                const visEdges = data.edges.map((edge, idx) => {
+                    const ethValue = (BigInt(edge.value || '0') / BigInt('1000000000000000000')).toString();
+                    const fromType = data.nodes.find(n => (n.id || n.address).toLowerCase() === edge.from.toLowerCase())?.type || 'source';
+                    const toType = data.nodes.find(n => (n.id || n.address).toLowerCase() === edge.to.toLowerCase())?.type || 'destination';
+                    
+                    let color = '#94a3b8';
+                    if (fromType === 'source') color = '#f97316';
+                    if (toType === 'destination') color = '#10b981';
+                    
+                    return {
+                        id: idx,
+                        from: edge.from,
+                        to: edge.to,
+                        label: `${ethValue} ETH`,
+                        color: color,
+                        width: 2,
+                        arrows: 'to',
+                        smooth: { type: 'curvedCW', roundness: 0.2 },
+                        data: edge
+                    };
+                });
+                
+                // Create container for graph
+                let html = `
+                    <div style="background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(168, 85, 247, 0.3); border-radius: 8px; padding: 20px; margin-bottom: 15px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <h3 style="color: #a855f7; margin: 0;">📊 Flow Visualization</h3>
+                            <div style="display: flex; gap: 10px; font-size: 12px; color: #94a3b8;">
+                                <span>🟠 Sources: ${data.nodes.filter(n => n.type === 'source').length}</span>
+                                <span>🔵 Target: 1</span>
+                                <span>🟢 Destinations: ${data.nodes.filter(n => n.type === 'destination').length}</span>
+                            </div>
+                        </div>
+                        <div id="flowNetworkContainer" style="width: 100%; height: 600px; background: #0f172a; border-radius: 8px; border: 1px solid rgba(148, 163, 184, 0.2);"></div>
+                        <div id="flowDetailsPanel" style="display: none; margin-top: 20px; background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(96, 165, 250, 0.3); border-radius: 8px; padding: 20px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                                <h4 style="color: #60a5fa; margin: 0;">Flow Details</h4>
+                                <button onclick="closeFlowDetails()" style="background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 5px 15px; border-radius: 4px; cursor: pointer;">Close</button>
+                            </div>
+                            <div id="flowDetailsContent"></div>
+                        </div>
+                    </div>
+                `;
+                resultsEl.innerHTML = html;
+                
+                // Initialize network
+                const container = document.getElementById('flowNetworkContainer');
+                const networkData = {
+                    nodes: new vis.DataSet(visNodes),
+                    edges: new vis.DataSet(visEdges)
+                };
+                
+                const options = {
+                    nodes: {
+                        borderWidth: 2,
+                        shadow: true,
+                        font: {
+                            color: '#ffffff',
+                            size: 14,
+                            face: 'Arial'
+                        }
+                    },
+                    edges: {
+                        width: 2,
+                        shadow: true,
+                        font: {
+                            color: '#ffffff',
+                            size: 12,
+                            align: 'middle'
+                        },
+                        labelHighlightBold: false
+                    },
+                    physics: {
+                        enabled: true,
+                        stabilization: { iterations: 200 },
+                        barnesHut: {
+                            gravitationalConstant: -2000,
+                            centralGravity: 0.1,
+                            springLength: 200,
+                            springConstant: 0.04,
+                            damping: 0.09
+                        }
+                    },
+                    interaction: {
+                        hover: true,
+                        tooltipDelay: 100,
+                        zoomView: true,
+                        dragView: true
+                    }
+                };
+                
+                flowNetwork = new vis.Network(container, networkData, options);
+                
+                // Handle node click
+                flowNetwork.on('click', function(params) {
+                    if (params.nodes.length > 0) {
+                        const nodeId = params.nodes[0];
+                        const node = visNodes.find(n => n.id === nodeId);
+                        if (node) {
+                            selectedFlowNode = node;
+                            showFlowDetails(node.data, data.edges);
+                        }
+                    }
+                });
+                
+                // Center on target node
+                setTimeout(() => {
+                    flowNetwork.focus(targetAddress, {
+                        scale: 1.2,
+                        animation: true
+                    });
+                }, 500);
+                
+            } catch (error) {
+                resultsEl.innerHTML = `<div style="padding: 20px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px; color: #ef4444;">
+                    <strong>❌ Error:</strong> ${error.message || 'Failed to visualize flow'}
+                </div>`;
+            }
         }
         
-        function runCrossChainAnalysis() {
-            const input = document.getElementById('investigationAddressInput');
-            const address = input.value.trim();
+        async function showFlowDetails(nodeData, allEdges) {
+            const panel = document.getElementById('flowDetailsPanel');
+            const content = document.getElementById('flowDetailsContent');
             
-            if (!address) {
-                alert('Please enter an address to analyze across chains');
-                return;
-            }
+            if (!panel || !content) return;
             
-            alert('Cross-Chain Analysis: This feature tracks the same address or related addresses across multiple blockchain networks (Ethereum, Polygon, BSC, Arbitrum, etc.) to identify cross-chain fund movements and bridge transactions.');
+            const address = nodeData.address;
+            const balance = (BigInt(nodeData.balance || '0') / BigInt('1000000000000000000')).toString();
+            const nodeType = nodeData.type || 'unknown';
+            const incomingValue = (BigInt(nodeData.incomingValue || '0') / BigInt('1000000000000000000')).toString();
+            const outgoingValue = (BigInt(nodeData.outgoingValue || '0') / BigInt('1000000000000000000')).toString();
+            
+            // Get connected transactions
+            const incomingTxs = allEdges.filter(e => e.to.toLowerCase() === address.toLowerCase());
+            const outgoingTxs = allEdges.filter(e => e.from.toLowerCase() === address.toLowerCase());
+            
+            let typeLabel = 'Unknown';
+            let typeIcon = '🔵';
+            if (nodeType === 'target') { typeLabel = 'Target Address'; typeIcon = '🔵'; }
+            if (nodeType === 'source') { typeLabel = 'Source'; typeIcon = '🟠'; }
+            if (nodeType === 'destination') { typeLabel = 'Destination'; typeIcon = '🟢'; }
+            
+            content.innerHTML = `
+                <div style="margin-bottom: 20px;">
+                    <div style="color: #94a3b8; font-size: 12px; margin-bottom: 5px;">Node Type</div>
+                    <div style="color: #60a5fa; font-size: 14px; display: flex; align-items: center; gap: 8px;">
+                        ${typeIcon} ${typeLabel}
+                    </div>
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <div style="color: #94a3b8; font-size: 12px; margin-bottom: 5px;">Address</div>
+                    <div style="color: #cbd5e1; font-family: monospace; font-size: 13px; word-break: break-all;">
+                        <a href="https://etherscan.io/address/${address}" target="_blank" style="color: #60a5fa; text-decoration: none;">${address}</a>
+                    </div>
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <div style="color: #94a3b8; font-size: 12px; margin-bottom: 5px;">Balance</div>
+                    <div style="color: #10b981; font-size: 24px; font-weight: bold;">${balance} ETH</div>
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <div style="color: #94a3b8; font-size: 14px; font-weight: bold; margin-bottom: 10px;">Connected Transactions</div>
+                    ${incomingTxs.length > 0 ? `
+                        <div style="margin-bottom: 15px;">
+                            <div style="color: #f97316; font-size: 12px; margin-bottom: 8px; font-weight: bold;">Incoming (${incomingTxs.length})</div>
+                            <div style="max-height: 200px; overflow-y: auto;">
+                                ${incomingTxs.slice(0, 10).map(tx => {
+                                    const value = (BigInt(tx.value || '0') / BigInt('1000000000000000000')).toString();
+                                    return `
+                                        <div style="padding: 8px; margin-bottom: 5px; background: rgba(249, 115, 22, 0.1); border-radius: 4px; border-left: 3px solid #f97316;">
+                                            <a href="https://etherscan.io/tx/${tx.hash}" target="_blank" style="color: #60a5fa; font-family: monospace; font-size: 11px; text-decoration: none; display: block; margin-bottom: 3px;">
+                                                ${tx.hash.slice(0, 16)}...
+                                            </a>
+                                            <div style="color: #10b981; font-size: 12px; font-weight: bold;">${value} ETH</div>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                    ${outgoingTxs.length > 0 ? `
+                        <div>
+                            <div style="color: #10b981; font-size: 12px; margin-bottom: 8px; font-weight: bold;">Outgoing (${outgoingTxs.length})</div>
+                            <div style="max-height: 200px; overflow-y: auto;">
+                                ${outgoingTxs.slice(0, 10).map(tx => {
+                                    const value = (BigInt(tx.value || '0') / BigInt('1000000000000000000')).toString();
+                                    return `
+                                        <div style="padding: 8px; margin-bottom: 5px; background: rgba(16, 185, 129, 0.1); border-radius: 4px; border-left: 3px solid #10b981;">
+                                            <a href="https://etherscan.io/tx/${tx.hash}" target="_blank" style="color: #60a5fa; font-family: monospace; font-size: 11px; text-decoration: none; display: block; margin-bottom: 3px;">
+                                                ${tx.hash.slice(0, 16)}...
+                                            </a>
+                                            <div style="color: #10b981; font-size: 12px; font-weight: bold;">${value} ETH</div>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+            
+            panel.style.display = 'block';
         }
         
-        function detectMEV() {
-            const input = document.getElementById('investigationAddressInput');
-            const address = input.value.trim();
-            
-            if (!address) {
-                alert('Please enter an address to scan for MEV');
-                return;
+        function closeFlowDetails() {
+            const panel = document.getElementById('flowDetailsPanel');
+            if (panel) {
+                panel.style.display = 'none';
             }
-            
-            alert('MEV Detection: This feature identifies Maximal Extractable Value (MEV) activities including front-running, back-running, sandwich attacks, and arbitrage opportunities. It analyzes transaction ordering and gas prices.');
+            if (flowNetwork && selectedFlowNode) {
+                flowNetwork.unselectAll();
+                selectedFlowNode = null;
+            }
         }
         
-        function generateRiskProfile() {
+        async function runCrossChainAnalysis() {
             const input = document.getElementById('investigationAddressInput');
             const address = input.value.trim();
             
-            if (!address) {
-                alert('Please enter an address to profile');
+            if (!address || !address.startsWith('0x')) {
+                alert('Please enter a valid Ethereum address');
                 return;
             }
             
-            alert('Risk Profiling: This feature generates a comprehensive risk assessment profile including transaction patterns, volume analysis, time-based behavior, and association with known risky addresses or entities.');
+            const resultsEl = document.getElementById('investigationResults');
+            resultsEl.style.display = 'block';
+            resultsEl.innerHTML = '<div style="text-align: center; padding: 30px; color: #94a3b8;"><div style="font-size: 24px; margin-bottom: 10px;">🌐</div>Analyzing Cross-Chain Activity...</div>';
+            
+            try {
+                const response = await fetch(`/api/investigation/crosschain/${address}`);
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ error: `HTTP ${response.status}: ${response.statusText}` }));
+                    throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+                }
+                const data = await response.json();
+                
+                let html = `
+                    <div style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(74, 222, 128, 0.3); border-radius: 8px; padding: 20px; margin-bottom: 15px;">
+                        <h3 style="color: #4ade80; margin-bottom: 15px;">🌐 Cross-Chain Analysis</h3>
+                        <div style="background: rgba(15, 23, 42, 0.6); padding: 15px; border-radius: 6px; margin-bottom: 15px;">
+                            <div style="color: #94a3b8; font-size: 12px; margin-bottom: 5px;">Active Chains</div>
+                            <div style="color: #4ade80; font-size: 24px; font-weight: bold;">${data.activeChains || 0}</div>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+                            ${data.chains.map(chain => `
+                                <div style="padding: 12px; background: ${chain.hasActivity ? 'rgba(34, 197, 94, 0.1)' : 'rgba(15, 23, 42, 0.6)'}; 
+                                            border: 1px solid ${chain.hasActivity ? 'rgba(74, 222, 128, 0.3)' : 'rgba(148, 163, 184, 0.2)'}; 
+                                            border-radius: 6px;">
+                                    <div style="color: ${chain.hasActivity ? '#4ade80' : '#94a3b8'}; font-weight: bold; margin-bottom: 5px; text-transform: capitalize;">
+                                        ${chain.chain} ${chain.hasActivity ? '✓' : '✗'}
+                                    </div>
+                                    <div style="color: #94a3b8; font-size: 11px;">Transactions: ${chain.txCount}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+                resultsEl.innerHTML = html;
+            } catch (error) {
+                resultsEl.innerHTML = `<div style="padding: 20px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px; color: #ef4444;">
+                    <strong>❌ Error:</strong> ${error.message || 'Failed to analyze cross-chain'}
+                </div>`;
+            }
+        }
+        
+        async function detectMEV() {
+            const input = document.getElementById('investigationAddressInput');
+            const address = input.value.trim();
+            
+            if (!address || !address.startsWith('0x')) {
+                alert('Please enter a valid Ethereum address');
+                return;
+            }
+            
+            const resultsEl = document.getElementById('investigationResults');
+            resultsEl.style.display = 'block';
+            resultsEl.innerHTML = '<div style="text-align: center; padding: 30px; color: #94a3b8;"><div style="font-size: 24px; margin-bottom: 10px;">⚡</div>Scanning for MEV Activities...</div>';
+            
+            try {
+                const response = await fetch(`/api/investigation/mev/${address}`);
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ error: `HTTP ${response.status}: ${response.statusText}` }));
+                    throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+                }
+                const data = await response.json();
+                
+                let html = `
+                    <div style="background: rgba(234, 179, 8, 0.1); border: 1px solid rgba(250, 204, 21, 0.3); border-radius: 8px; padding: 20px; margin-bottom: 15px;">
+                        <h3 style="color: #facc15; margin-bottom: 15px;">⚡ MEV Detection Results</h3>
+                        <div style="background: rgba(15, 23, 42, 0.6); padding: 15px; border-radius: 6px; margin-bottom: 15px;">
+                            <div style="color: #94a3b8; font-size: 12px; margin-bottom: 5px;">MEV Patterns Detected</div>
+                            <div style="color: ${data.mevDetected ? '#facc15' : '#94a3b8'}; font-size: 24px; font-weight: bold;">
+                                ${data.patternCount || 0}
+                            </div>
+                            <div style="color: ${data.mevDetected ? '#facc15' : '#94a3b8'}; font-size: 12px; margin-top: 5px;">
+                                ${data.mevDetected ? '⚠️ MEV Activity Detected' : '✓ No MEV patterns found'}
+                            </div>
+                        </div>
+                        ${data.patterns && data.patterns.length > 0 ? `
+                            <div style="max-height: 400px; overflow-y: auto;">
+                                ${data.patterns.map(pattern => `
+                                    <div style="padding: 12px; margin-bottom: 8px; background: rgba(234, 179, 8, 0.1); border-radius: 6px; border-left: 3px solid #facc15;">
+                                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                                            <span style="color: #facc15; font-weight: bold; font-size: 12px; text-transform: uppercase;">
+                                                ${pattern.type.replace('_', ' ')}
+                                            </span>
+                                            <a href="https://etherscan.io/tx/${pattern.txHash}" target="_blank" 
+                                               style="color: #60a5fa; font-size: 10px; text-decoration: none;">View TX</a>
+                                        </div>
+                                        <div style="color: #cbd5e1; font-size: 11px;">${pattern.description}</div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+                resultsEl.innerHTML = html;
+            } catch (error) {
+                resultsEl.innerHTML = `<div style="padding: 20px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px; color: #ef4444;">
+                    <strong>❌ Error:</strong> ${error.message || 'Failed to detect MEV'}
+                </div>`;
+            }
+        }
+        
+        async function generateRiskProfile() {
+            const input = document.getElementById('investigationAddressInput');
+            const address = input.value.trim();
+            
+            if (!address || !address.startsWith('0x')) {
+                alert('Please enter a valid Ethereum address');
+                return;
+            }
+            
+            const resultsEl = document.getElementById('investigationResults');
+            resultsEl.style.display = 'block';
+            resultsEl.innerHTML = '<div style="text-align: center; padding: 30px; color: #94a3b8;"><div style="font-size: 24px; margin-bottom: 10px;">🎭</div>Generating Risk Profile...</div>';
+            
+            try {
+                const response = await fetch(`/api/investigation/risk/${address}`);
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ error: `HTTP ${response.status}: ${response.statusText}` }));
+                    throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+                }
+                const data = await response.json();
+                
+                const riskColor = data.riskLevel === 'HIGH' ? '#ef4444' : data.riskLevel === 'MEDIUM' ? '#f59e0b' : '#10b981';
+                
+                let html = `
+                    <div style="background: rgba(15, 23, 42, 0.6); border: 2px solid ${riskColor}; border-radius: 8px; padding: 20px; margin-bottom: 15px;">
+                        <h3 style="color: ${riskColor}; margin-bottom: 15px;">🎭 Risk Profile</h3>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                            <div style="background: rgba(15, 23, 42, 0.8); padding: 15px; border-radius: 6px;">
+                                <div style="color: #94a3b8; font-size: 12px; margin-bottom: 5px;">Risk Score</div>
+                                <div style="color: ${riskColor}; font-size: 32px; font-weight: bold;">${data.riskScore || 0}/100</div>
+                                <div style="color: ${riskColor}; font-size: 12px; margin-top: 5px; font-weight: bold;">${data.riskLevel || 'LOW'}</div>
+                            </div>
+                            <div style="background: rgba(15, 23, 42, 0.8); padding: 15px; border-radius: 6px;">
+                                <div style="color: #94a3b8; font-size: 12px; margin-bottom: 5px;">Balance</div>
+                                <div style="color: #60a5fa; font-size: 20px; font-weight: bold;">${(() => {
+                                    try {
+                                        const balance = data.balance || '0';
+                                        // If balance is already in ETH (decimal), use it directly
+                                        if (typeof balance === 'string' && balance.includes('.')) {
+                                            return parseFloat(balance).toFixed(4) + ' ETH';
+                                        }
+                                        // If balance is in wei (large integer string), convert to ETH
+                                        if (typeof balance === 'string' && !balance.includes('.')) {
+                                            return (BigInt(balance) / BigInt('1000000000000000000')).toString() + ' ETH';
+                                        }
+                                        // Fallback: try to parse as number
+                                        const numBalance = parseFloat(balance);
+                                        return isNaN(numBalance) ? '0 ETH' : numBalance.toFixed(4) + ' ETH';
+                                    } catch (e) {
+                                        // If BigInt conversion fails, use balanceETH if available
+                                        return (data.balanceETH || '0') + ' ETH';
+                                    }
+                                })()}</div>
+                            </div>
+                            <div style="background: rgba(15, 23, 42, 0.8); padding: 15px; border-radius: 6px;">
+                                <div style="color: #94a3b8; font-size: 12px; margin-bottom: 5px;">Transactions</div>
+                                <div style="color: #60a5fa; font-size: 20px; font-weight: bold;">${data.transactionCount || 0}</div>
+                            </div>
+                        </div>
+                        ${data.riskFactors && data.riskFactors.length > 0 ? `
+                            <div style="margin-bottom: 15px;">
+                                <h4 style="color: ${riskColor}; font-size: 14px; margin-bottom: 10px;">Risk Factors:</h4>
+                                <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                                    ${data.riskFactors.map(factor => `
+                                        <span style="background: rgba(239, 68, 68, 0.2); color: #ef4444; padding: 6px 12px; border-radius: 12px; font-size: 11px;">
+                                            ⚠️ ${factor}
+                                        </span>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                        ${data.suspiciousFlags && data.suspiciousFlags.length > 0 ? `
+                            <div style="margin-bottom: 15px;">
+                                <h4 style="color: #f59e0b; font-size: 14px; margin-bottom: 10px;">Suspicious Flags:</h4>
+                                <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                                    ${data.suspiciousFlags.map(flag => `
+                                        <span style="background: rgba(245, 158, 11, 0.2); color: #f59e0b; padding: 6px 12px; border-radius: 12px; font-size: 11px;">
+                                            🚩 ${flag}
+                                        </span>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                        <div style="background: rgba(15, 23, 42, 0.8); padding: 15px; border-radius: 6px; margin-top: 15px;">
+                            <div style="color: #94a3b8; font-size: 12px; margin-bottom: 8px;">Total Volume:</div>
+                            <div style="color: #60a5fa; font-size: 16px; font-weight: bold;">
+                                ${(() => {
+                                    try {
+                                        const volume = data.totalVolume || '0';
+                                        // If it's a decimal string, use it directly
+                                        if (typeof volume === 'string' && volume.includes('.')) {
+                                            return parseFloat(volume).toFixed(4);
+                                        }
+                                        // If it's an integer string (wei), convert to ETH
+                                        if (typeof volume === 'string' && !volume.includes('.')) {
+                                            return (BigInt(volume) / BigInt('1000000000000000000')).toString();
+                                        }
+                                        // Fallback
+                                        return parseFloat(volume).toFixed(4);
+                                    } catch (e) {
+                                        return '0';
+                                    }
+                                })()} ETH
+                            </div>
+                        </div>
+                    </div>
+                `;
+                resultsEl.innerHTML = html;
+            } catch (error) {
+                resultsEl.innerHTML = `<div style="padding: 20px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px; color: #ef4444;">
+                    <strong>❌ Error:</strong> ${error.message || 'Failed to generate risk profile'}
+                </div>`;
+            }
         }
         
         // Allow Enter key to trigger investigation
@@ -3741,10 +4673,32 @@
             }
         }
 
-        // Load Crypto News
-        async function loadCryptoNews() {
+        // Rate-limit guard for news polling (set true to re-enable auto refresh)
+        const NEWS_AUTO_REFRESH_ENABLED = false;
+        const NEWS_REFRESH_INTERVAL_MS = 30 * 60 * 1000; // 30 minutes
+
+        function renderNewsPaused() {
             const newsContentEl = document.getElementById('cryptoNewsContent');
             if (!newsContentEl) return;
+            newsContentEl.innerHTML = `
+                <div style="text-align: center; padding: 32px; background: #ecfdf3; border: 1px dashed #10b981; border-radius: 10px;">
+                    <div style="font-size: 40px; margin-bottom: 10px;">⏸️</div>
+                    <p style="font-weight: bold; color: #065f46; margin-bottom: 6px;">Auto news refresh paused</p>
+                    <p style="font-size: 12px; color: #065f46;">We hit API rate limits. Click “Refresh News” to fetch once, or re-enable auto refresh after quota recovers.</p>
+                </div>
+            `;
+        }
+
+        // Load Crypto News
+        async function loadCryptoNews(force = false) {
+            const newsContentEl = document.getElementById('cryptoNewsContent');
+            if (!newsContentEl) return;
+
+            // Skip background refreshes while paused
+            if (!force && !NEWS_AUTO_REFRESH_ENABLED) {
+                renderNewsPaused();
+                return;
+            }
 
             // Show loading state
             newsContentEl.innerHTML = `
@@ -3858,7 +4812,7 @@
                         <div style="font-size: 48px; margin-bottom: 15px;">⚠️</div>
                         <p style="margin-bottom: 10px; font-weight: bold;">Error Loading News</p>
                         <p style="font-size: 12px; color: #9ca3af;">${error.message}</p>
-                        <button onclick="loadCryptoNews()" style="margin-top: 15px; padding: 10px 20px; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">
+                        <button onclick="loadCryptoNews(true)" style="margin-top: 15px; padding: 10px 20px; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">
                             Try Again
                         </button>
                     </div>
@@ -4550,11 +5504,15 @@
             }
         }, 30000);
         
-        // Load crypto news on page load and auto-refresh every 5 minutes
-        loadCryptoNews();
-        const newsRefreshInterval = setInterval(() => {
+        // Load crypto news with optional auto-refresh (paused by default to avoid rate limits)
+        if (NEWS_AUTO_REFRESH_ENABLED) {
             loadCryptoNews();
-        }, 300000); // 5 minutes = 300000ms
+            const newsRefreshInterval = setInterval(() => {
+                loadCryptoNews();
+            }, NEWS_REFRESH_INTERVAL_MS);
+        } else {
+            renderNewsPaused();
+        }
         
         // Load financial entities on page load
         loadFinancialEntities();

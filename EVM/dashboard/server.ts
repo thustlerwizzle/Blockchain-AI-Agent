@@ -2,7 +2,11 @@ import "dotenv/config";
 import express, { type Request, type Response } from "express";
 import cors from "cors";
 import path from "path";
+import fs from "fs";
+import { promises as fsp } from "fs";
 import { fileURLToPath } from "url";
+import { OpenAI } from "openai";
+import { Document, HeadingLevel, Packer, Paragraph, Table, TableCell, TableRow, TextRun, WidthType } from "docx";
 import { AgentOrchestrator } from "../src/agent/agentOrchestrator.js";
 import { ReinforcementLearning } from "../src/learning/reinforcementLearning.js";
 import { RegulatoryMetricsCalculator } from "../src/regulator/regulatoryMetrics.js";
@@ -17,6 +21,8 @@ import { MarketManipulationDetector } from "../src/security/marketManipulationDe
 import { EnhancedSuspiciousActivityTracker } from "../src/security/enhancedSuspiciousActivity.js";
 import { FinancialStatementAnalyzer } from "../src/regulator/financialStatementAnalyzer.js";
 import * as EtherscanAPI from "../src/utils/etherscan.js";
+import { createPublicClient, http, type Address, type Chain } from "viem";
+import { arbitrum, avalancheFuji, base, bsc, mainnet, optimism, polygon, sepolia } from "viem/chains";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -42,11 +48,1420 @@ let marketManipulationDetector: MarketManipulationDetector | null = null;
 let enhancedSuspiciousActivityTracker: EnhancedSuspiciousActivityTracker | null = null;
 let financialStatementAnalyzer: FinancialStatementAnalyzer | null = null;
 let recentTransactions: any[] = [];
+const USE_TEST_DATA = process.env.USE_TEST_DATA === "true";
+const ETH_RPC_URL = process.env.ETH_RPC_URL || "https://cloudflare-eth.com";
+let realDataPollingStarted = false;
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const openai = OPENAI_API_KEY ? new OpenAI({ apiKey: OPENAI_API_KEY }) : null;
+const INVESTIGATION_STORE_PATH = path.join(process.cwd(), "data", "investigations.json");
+const REPORTS_DIR = process.env.REPORTS_DIR || "C:\\Users\\takun\\OneDrive\\Documents\\Blockchain AI Agent\\reports";
+const MAX_INVESTIGATION_HISTORY = 200;
+const AUTO_SAR_DIR = path.join(REPORTS_DIR, "auto");
+
+type CrossChainConfig = {
+  name: string;
+  chain: Chain;
+  rpcEnv?: string;
+};
+
+const CROSS_CHAIN_CONFIGS: CrossChainConfig[] = [
+  { name: "ethereum", chain: mainnet, rpcEnv: "ETH_RPC_URL" },
+  { name: "polygon", chain: polygon, rpcEnv: "POLYGON_RPC_URL" },
+  { name: "bsc", chain: bsc, rpcEnv: "BSC_RPC_URL" },
+  { name: "arbitrum", chain: arbitrum, rpcEnv: "ARBITRUM_RPC_URL" },
+  { name: "optimism", chain: optimism, rpcEnv: "OPTIMISM_RPC_URL" },
+  { name: "base", chain: base, rpcEnv: "BASE_RPC_URL" },
+  { name: "avalanche-fuji", chain: avalancheFuji, rpcEnv: "AVALANCHE_FUJI_RPC_URL" },
+  { name: "sepolia", chain: sepolia, rpcEnv: "SEPOLIA_RPC_URL" },
+];
+
+const CROSS_CHAIN_BLOCK_LOOKBACK = 12;
+const CROSS_CHAIN_RECENT_TX_LIMIT = 50;
+
+function getRpcUrl(config: CrossChainConfig): string {
+  const envUrl = config.rpcEnv ? process.env[config.rpcEnv] : undefined;
+  const fallbackUrl = config.chain.rpcUrls?.default?.http?.[0];
+  if (envUrl) return envUrl;
+  if (fallbackUrl) return fallbackUrl;
+  throw new Error(`No RPC URL configured for ${config.name}`);
+}
+
+function createChainClient(config: CrossChainConfig) {
+  const rpcUrl = getRpcUrl(config);
+  return {
+    rpcUrl,
+    client: createPublicClient({
+      chain: config.chain,
+      transport: http(rpcUrl, { timeout: 15_000 }),
+    }),
+  };
+}
+
+// Master Investigative Blueprint: Syndicate-7 Cluster Database (Jan 18, 2026)
+const SYNDICATE_7_CLUSTER: Array<{ address: string; role: string; status: string; riskScore: number }> = [
+  { address: "0x019d0706d65c4768ec8081ed7ce41f59eef9b86c", role: "Ghost Deployer", status: "High Risk (Disposable node)", riskScore: 95 },
+  { address: "0x489626343f723f03673bf4d072c227341ff3684f", role: "Weaponized Contract", status: "Malicious (Wallet Drainer)", riskScore: 100 },
+  { address: "0x6131b5fae19ea4f9d964eac0408e4408b66337b5", role: "Aggregator/Mixer", status: "KyberSwap (Used for laundering)", riskScore: 85 },
+  { address: "0x7c7c8fe926b2789826e80b28641d2d9cdb111a21", role: "Mastermind", status: "Consolidator (Primary beneficiary)", riskScore: 98 },
+  { address: "0xbc892e14f5276a12d7890b21c4567e912a3b4c56", role: "Off-Ramp", status: "Binance Deposit (KYC point)", riskScore: 75 },
+  { address: "0x87c9fc9bfb3203b7bc161d67a7c759482d1a28ae", role: "Yield Staker", status: "Lido Staker (Asset parking)", riskScore: 80 },
+  { address: "0xd1b84219", role: "Scout/Watcher", status: "Dev Wallet (Used for testing)", riskScore: 60 },
+  { address: "0x52a1d8f762b3c4578912e6b4c3e8f9012a9d8e7b", role: "Peeling Hub", status: "Liquidity Node", riskScore: 85 },
+  { address: "0xd0d08887e8a5b16049534a7f3fc1de92848f5bea", role: "MEV Controller", status: "Active on Optimism", riskScore: 75 },
+  { address: "0x6a000f20005980200259b80c5102003040001068", role: "Governance Manipulator", status: "Flash Loan Voter", riskScore: 65 },
+];
+
+// Top 10 High-Risk Function Signatures (EIP-712 / 4-byte signatures)
+const HIGH_RISK_FUNCTIONS: Array<{ name: string; signature: string; riskScore: number; description: string }> = [
+  { name: "permit", signature: "0xd505accf", riskScore: 95, description: "EIP-2612 Gasless Drainer - Allows token movement via signature only" },
+  { name: "delegatecall", signature: "0x", riskScore: 100, description: "Extremely dangerous - Executes code from another contract, hijacks ownership" },
+  { name: "setApprovalForAll", signature: "0xa22cb465", riskScore: 90, description: "NFT/Token drainer - Approves entire collection in one click" },
+  { name: "transferFrom", signature: "0x23b872dd", riskScore: 80, description: "Fund extraction - Pulls approved tokens from user wallet" },
+  { name: "upgradeTo", signature: "0x3659cfe6", riskScore: 85, description: "Proxy manipulation - Changes safe contract to malicious after deposit" },
+  { name: "selfdestruct", signature: "0x1ba4eec0", riskScore: 90, description: "Evidence destruction - Deletes contract code to hide forensics" },
+  { name: "mint (unlimited)", signature: "0x40c10f19", riskScore: 95, description: "Rug pull function - Creates billions of tokens instantly to dump" },
+  { name: "blacklist/setFrozen", signature: "0x", riskScore: 100, description: "Honeypot signature - Owner stops victims from selling tokens" },
+  { name: "renounceOwnership", signature: "0x715018a6", riskScore: 70, description: "Trust signal deception - Looks safe but hidden backdoor exists" },
+  { name: "multicall", signature: "0xac9650d8", riskScore: 85, description: "Batched attacks - Approve + Transfer + Swap in one transaction" },
+];
+
+// Known Bridge/Mixer addresses for Step 1 Triage
+const BRIDGE_ADDRESSES = new Set([
+  "0x000000000088228b6e7a0bc5f0b8b5c", // Across
+  "0x2796317b0ff8538f", // Stargate
+  "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", // USDC (often used as bridge)
+]);
+
+const MIXER_ADDRESSES = new Set([
+  "0x77777feddddffc19ff86db637967013e6c6a116c", // Tornado Cash
+  "0x12d66f87a04a9e220743712ce6d9bb1b5616b8fc", // Tornado Cash (old)
+]);
+
+type InvestigationRecord = {
+  id: string;
+  address: string;
+  token?: string;
+  riskScore: number;
+  summary: string;
+  sarText?: string;
+  alerts: any[];
+  chainActivity: Array<{ chain: string; hasActivity: boolean; txCount: number; balance?: string; rpc?: string; error?: string }>;
+  timestamp: number;
+  status?: "flagged" | "cleared";
+  workflowAnalysis?: {
+    triage: { fundedByBridge: boolean; fundedByMixer: boolean; baseRisk: number };
+    dependencyMapping: { clusterMatch: boolean; relatedAddresses: string[]; hopDistance: number };
+    behavioralClass: string;
+    payloadInspection: { highRiskFunctions: string[]; contractVerified: boolean };
+    sarReady: boolean;
+  };
+  highRiskTransactions?: Array<{
+    hash: string;
+    from: string;
+    to: string | null;
+    value: string;
+    blockNumber: string;
+    timestamp: string;
+    riskScore: number;
+    riskReason: string;
+    anomalyFlags: string[];
+    category: string;
+  }>;
+};
+
+async function ensureInvestigationStore() {
+  await fsp.mkdir(path.dirname(INVESTIGATION_STORE_PATH), { recursive: true });
+}
+
+async function ensureReportsDir() {
+  await fsp.mkdir(REPORTS_DIR, { recursive: true });
+  // Ensure subdirectories exist
+  await fsp.mkdir(path.join(REPORTS_DIR, "flagged"), { recursive: true });
+  await fsp.mkdir(path.join(REPORTS_DIR, "flagged", "high"), { recursive: true });
+  await fsp.mkdir(path.join(REPORTS_DIR, "flagged", "medium"), { recursive: true });
+  await fsp.mkdir(path.join(REPORTS_DIR, "flagged", "low"), { recursive: true });
+  await fsp.mkdir(path.join(REPORTS_DIR, "cleared"), { recursive: true });
+  await fsp.mkdir(path.join(REPORTS_DIR, "consolidated"), { recursive: true });
+}
+
+// Get report directory path based on status and risk level
+function getReportDirectory(record: InvestigationRecord): string {
+  const status = record.status || "flagged";
+  const riskLevel = record.riskScore >= 70 ? "high" : record.riskScore >= 40 ? "medium" : record.riskScore >= 20 ? "low" : "cleared";
+  
+  if (status === "cleared") {
+    return path.join(REPORTS_DIR, "cleared");
+  }
+  
+  return path.join(REPORTS_DIR, "flagged", riskLevel);
+}
+
+async function loadInvestigationHistory(): Promise<InvestigationRecord[]> {
+  try {
+    const raw = await fsp.readFile(INVESTIGATION_STORE_PATH, "utf-8");
+    return JSON.parse(raw) as InvestigationRecord[];
+  } catch {
+    return [];
+  }
+}
+
+async function saveInvestigationRecord(record: InvestigationRecord) {
+  await ensureInvestigationStore();
+  await ensureReportsDir();
+  const history = await loadInvestigationHistory();
+
+  // If cleared, remove prior entries for this address/token
+  const filtered = record.status === "cleared"
+    ? history.filter(r => !(r.address?.toLowerCase() === record.address.toLowerCase() && (r.token || "") === (record.token || "")))
+    : history;
+
+  filtered.unshift(record);
+
+  const limited = filtered.slice(0, MAX_INVESTIGATION_HISTORY);
+  await fsp.writeFile(INVESTIGATION_STORE_PATH, JSON.stringify(limited, null, 2), "utf-8");
+
+  // Update flagged CSV snapshot - include ALL risk levels (suspicious, flagged, high, medium, low)
+  try {
+    // Include all records except cleared ones (riskScore > 20 or has alerts)
+    const allRiskRecords = limited.filter(r => {
+      const status = r.status || "flagged";
+      return status === "flagged" || (r.riskScore > 20 || (r.alerts && r.alerts.length > 0));
+    });
+    const header = ["address", "token", "riskScore", "riskLevel", "status", "summary", "sarText", "alerts", "timestamp"].join(",");
+    const rows = allRiskRecords.map(r => {
+      const riskLevel = r.riskScore >= 70 ? "HIGH" : r.riskScore >= 40 ? "MEDIUM" : r.riskScore >= 20 ? "LOW" : "CLEARED";
+      const summary = (r.summary || "").replace(/"/g, '""');
+      const sar = (r.sarText || "").replace(/"/g, '""');
+      const alerts = Array.isArray(r.alerts) ? r.alerts.map((a: any) => `${a.alertType || a.type || "alert"}:${a.riskScore || ""}`).join("|") : "";
+      const alertsEscaped = alerts.replace(/"/g, '""');
+      return [
+        r.address,
+        r.token || "",
+        r.riskScore,
+        riskLevel,
+        r.status || "flagged",
+        `"${summary}"`,
+        `"${sar}"`,
+        `"${alertsEscaped}"`,
+        new Date(r.timestamp).toISOString(),
+      ].join(",");
+    });
+    const csv = [header, ...rows].join("\n");
+    const csvPath = path.join(REPORTS_DIR, "flagged.csv");
+    await fsp.writeFile(csvPath, csv, "utf-8");
+    console.log(`[CSV] Updated flagged.csv with ${allRiskRecords.length} records at ${csvPath}`);
+  } catch (err: any) {
+    console.error("[CSV] Failed to update flagged.csv:", err?.message || err);
+    console.error("[CSV] Error details:", err?.stack);
+  }
+}
+
+function investigationsToCsv(records: InvestigationRecord[]): string {
+  const header = ["id", "address", "token", "riskScore", "status", "summary", "sarText", "timestamp", "chains", "alerts"].join(",");
+  const rows = records.map((rec) => {
+    const chains = rec.chainActivity.map((c) => `${c.chain}:${c.txCount}${c.hasActivity ? "" : "(none)"}`).join("|");
+    const alerts = rec.alerts.map((a: any) => `${a.alertType || a.type || "alert"}:${a.riskScore || ""}`).join("|");
+    const safeSummary = (rec.summary || "").replace(/"/g, '""');
+    const safeSar = (rec.sarText || "").replace(/"/g, '""');
+    return [
+      rec.id,
+      rec.address,
+      rec.token || "",
+      rec.riskScore,
+      rec.status || "",
+      `"${safeSummary}"`,
+      `"${safeSar}"`,
+      new Date(rec.timestamp).toISOString(),
+      `"${chains}"`,
+      `"${alerts}"`,
+    ].join(",");
+  });
+  return [header, ...rows].join("\n");
+}
+
+async function buildCrossChainSnapshot(address: string, agentInstance: AgentOrchestrator | null) {
+  const lowerAddress = address.toLowerCase();
+  const liveTxs = agentInstance ? agentInstance.getRecentTransactions(1000) : [];
+
+  const chainData = await Promise.all(
+    CROSS_CHAIN_CONFIGS.map(async (config) => {
+      try {
+        const { client, rpcUrl } = createChainClient(config);
+
+        const [balance, nonce, latestBlock] = await Promise.all([
+          client.getBalance({ address: address as Address }).catch(() => 0n),
+          client.getTransactionCount({ address: address as Address }).catch(() => 0n),
+          client.getBlockNumber().catch(() => null),
+        ]);
+
+        let recentTxs = 0;
+        if (latestBlock && latestBlock > 0n) {
+          const lookback = Math.min(CROSS_CHAIN_BLOCK_LOOKBACK, Number(latestBlock));
+          for (let i = 0; i < lookback; i++) {
+            const blockNumber = latestBlock - BigInt(i);
+            const block = await client
+              .getBlock({ blockNumber, includeTransactions: true })
+              .catch(() => null);
+            if (!block?.transactions) continue;
+
+            for (const tx of block.transactions as any[]) {
+              if (typeof tx === "string") continue;
+              const fromMatch = tx.from?.toLowerCase() === lowerAddress;
+              const toMatch = tx.to?.toLowerCase() === lowerAddress;
+              if (fromMatch || toMatch) {
+                recentTxs++;
+                if (recentTxs >= CROSS_CHAIN_RECENT_TX_LIMIT) break;
+              }
+            }
+            if (recentTxs >= CROSS_CHAIN_RECENT_TX_LIMIT) break;
+          }
+        }
+
+        const liveTxCount = liveTxs.filter((tx: any) => {
+          if (tx.chain !== config.name) return false;
+          const fromMatch = tx.from && tx.from.toLowerCase() === lowerAddress;
+          const toMatch = tx.to && tx.to.toLowerCase() === lowerAddress;
+          return fromMatch || toMatch;
+        }).length;
+
+        const txCount = Math.max(Number(nonce ?? 0n), recentTxs, liveTxCount);
+
+        return {
+          chain: config.name,
+          hasActivity:
+            (nonce ?? 0n) > 0n ||
+            (balance ?? 0n) > 0n ||
+            recentTxs > 0 ||
+            liveTxCount > 0,
+          txCount,
+          balance: balance?.toString() ?? "0",
+          rpc: rpcUrl,
+        };
+      } catch (error: any) {
+        console.error(`[CrossChain] ${config.name} failed:`, error?.message || error);
+        return { chain: config.name, hasActivity: false, txCount: 0, error: error?.message || String(error) };
+      }
+    })
+  );
+
+  return chainData;
+}
+
+async function generateAiNarrative(params: {
+  address: string;
+  token?: string;
+  chainActivity: Array<{ chain: string; hasActivity: boolean; txCount: number }>;
+  alerts: any[];
+}): Promise<string> {
+  if (!openai) {
+    return "AI analysis unavailable (OPENAI_API_KEY not set).";
+  }
+
+  const { address, token, chainActivity, alerts } = params;
+  const alertSnippet = alerts
+    .map((a) => `${a.alertType || a.type || "alert"} | chain=${a.chain || ""} | risk=${a.riskScore ?? ""} | desc=${a.description || ""}`)
+    .slice(0, 10)
+    .join("\n");
+  const chainSnippet = chainActivity.map((c) => `${c.chain}: tx=${c.txCount}, active=${c.hasActivity}`).join("\n");
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4.1-mini",
+      temperature: 0.3,
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a compliance-grade blockchain investigator. Be concise, structured, and highlight manipulation/red flags. Return a short narrative (<=200 words) with bullet-like clarity.",
+        },
+        {
+          role: "user",
+          content: `Address: ${address}
+Token: ${token || "n/a"}
+Chain Activity:
+${chainSnippet}
+Alerts:
+${alertSnippet || "none"}`,
+        },
+      ],
+    });
+    return completion.choices[0]?.message?.content?.trim() || "AI narrative unavailable.";
+  } catch (err: any) {
+    console.warn("AI generation failed:", err?.message || err);
+    return "AI narrative unavailable due to upstream error.";
+  }
+}
+
+// Analyze High-Risk Transactions
+async function analyzeHighRiskTransactions(address: string, limit: number = 50): Promise<InvestigationRecord["highRiskTransactions"]> {
+  const highRiskTxs: InvestigationRecord["highRiskTransactions"] = [];
+  const analyzer = new TransactionAnalyzer();
+
+  try {
+    // Fetch recent transactions from Etherscan
+    const transactions = await EtherscanAPI.getAddressTransactions(address, 0, 99999999, 1, limit, 'desc');
+    
+    if (!transactions || transactions.length === 0) {
+      return [];
+    }
+
+    // Analyze each transaction
+    for (const tx of transactions.slice(0, limit)) {
+      try {
+        // Convert Etherscan Transaction to TransactionEvent format
+        const value = BigInt(tx.value || "0");
+        const blockNumber = BigInt(tx.blockNumber || "0");
+        const timestamp = parseInt(tx.timeStamp || "0", 10);
+
+        const txEvent: any = {
+          hash: tx.hash as `0x${string}`,
+          from: tx.from as Address,
+          to: (tx.to || null) as Address | null,
+          value: value,
+          blockNumber: blockNumber,
+          timestamp: timestamp,
+          chain: "ethereum",
+          data: (tx.input || "0x") as `0x${string}`,
+        };
+
+        // Analyze transaction
+        const analysis = await analyzer.analyzeTransaction(txEvent);
+
+        // Only include high-risk transactions (riskScore >= 70)
+        if (analysis.riskScore >= 70) {
+          // Generate risk reason explanation
+          const riskReason = generateRiskReason(analysis, txEvent, tx);
+
+          highRiskTxs.push({
+            hash: tx.hash,
+            from: tx.from,
+            to: tx.to || null,
+            value: tx.value,
+            blockNumber: tx.blockNumber,
+            timestamp: new Date(timestamp * 1000).toISOString(),
+            riskScore: analysis.riskScore,
+            riskReason,
+            anomalyFlags: analysis.anomalyFlags || [],
+            category: analysis.category || "unknown",
+          });
+        }
+      } catch (err: any) {
+        console.warn(`[HighRiskTx] Failed to analyze tx ${tx.hash}:`, err?.message || err);
+        // Continue with next transaction
+      }
+    }
+
+    // Sort by risk score (highest first)
+    highRiskTxs.sort((a, b) => b.riskScore - a.riskScore);
+
+    return highRiskTxs.slice(0, 20); // Return top 20 high-risk transactions
+  } catch (err: any) {
+    console.warn("[HighRiskTx] Failed to fetch/analyze transactions:", err?.message || err);
+    return [];
+  }
+}
+
+// Generate detailed risk reason explanation
+function generateRiskReason(analysis: any, txEvent: any, tx: any): string {
+  const reasons: string[] = [];
+
+  // Risk score based reasons
+  if (analysis.riskScore >= 90) {
+    reasons.push("CRITICAL RISK: Transaction shows extremely high risk indicators");
+  } else if (analysis.riskScore >= 80) {
+    reasons.push("HIGH RISK: Transaction exhibits multiple high-risk patterns");
+  } else if (analysis.riskScore >= 70) {
+    reasons.push("ELEVATED RISK: Transaction shows concerning patterns");
+  }
+
+  // Anomaly flag based reasons
+  if (analysis.anomalyFlags && analysis.anomalyFlags.length > 0) {
+    for (const flag of analysis.anomalyFlags) {
+      switch (flag.toUpperCase()) {
+        case "LARGE_VALUE":
+          const ethValue = Number(txEvent.value) / 1e18;
+          reasons.push(`Large transaction value: ${ethValue.toFixed(4)} ETH (indicates whale movement or high-value transfer)`);
+          break;
+        case "RAPID_TRANSACTIONS":
+          reasons.push("Rapid transaction pattern detected (possible automated trading or spam attack)");
+          break;
+        case "FAILED_TRANSACTIONS":
+          reasons.push("Failed transaction pattern (possible exploit attempt or front-running)");
+          break;
+        case "SUSPICIOUS_CONTRACT":
+          reasons.push("Interaction with suspicious/unverified contract (potential malicious contract)");
+          break;
+        case "MIXER_BRIDGE":
+          reasons.push("Transaction involves mixer or bridge (privacy/anonymity layer, possible money laundering)");
+          break;
+        case "UNUSUAL_GAS":
+          reasons.push("Unusual gas usage pattern (possible contract exploit or complex operation)");
+          break;
+        default:
+          reasons.push(`Flagged: ${flag}`);
+      }
+    }
+  }
+
+  // Transaction-specific checks
+  if (tx.isError === "1") {
+    reasons.push("Transaction failed (possible exploit attempt or reverted operation)");
+  }
+
+  const ethValue = Number(txEvent.value) / 1e18;
+  if (ethValue > 100) {
+    reasons.push(`Whale transaction: ${ethValue.toFixed(2)} ETH transferred (high-value movement)`);
+  }
+
+  // Check for high-risk function signatures
+  if (tx.input && tx.input.startsWith("0x") && tx.input.length > 10) {
+    const functionSig = tx.input.substring(0, 10).toLowerCase();
+    for (const func of HIGH_RISK_FUNCTIONS) {
+      if (func.signature && func.signature.toLowerCase() === functionSig) {
+        reasons.push(`High-risk function called: ${func.name} - ${func.description}`);
+        break;
+      }
+    }
+  }
+
+  // Category-based reasons
+  if (analysis.category) {
+    const categoryLower = analysis.category.toLowerCase();
+    if (categoryLower.includes("manipulation")) {
+      reasons.push("Market manipulation pattern detected");
+    } else if (categoryLower.includes("laundering")) {
+      reasons.push("Money laundering indicators present");
+    } else if (categoryLower.includes("exploit")) {
+      reasons.push("Potential exploit attempt detected");
+    } else if (categoryLower.includes("front-run")) {
+      reasons.push("Front-running or MEV pattern identified");
+    }
+  }
+
+  // Default if no specific reasons
+  if (reasons.length === 0) {
+    reasons.push(`High risk score (${analysis.riskScore}) indicates suspicious activity patterns`);
+  }
+
+  return reasons.join(". ") + ".";
+}
+
+// Master Investigative Blueprint: 5-Step Workflow Function
+async function runMasterWorkflow(address: string, agent: any): Promise<{
+  triage: { fundedByBridge: boolean; fundedByMixer: boolean; baseRisk: number };
+  dependencyMapping: { clusterMatch: boolean; relatedAddresses: string[]; hopDistance: number };
+  behavioralClass: string;
+  payloadInspection: { highRiskFunctions: string[]; contractVerified: boolean };
+  sarReady: boolean;
+}> {
+  const lowerAddress = address.toLowerCase();
+  
+  // Step 1: Triage - "Who paid for the gas?"
+  let fundedByBridge = false;
+  let fundedByMixer = false;
+  let baseRisk = 0;
+
+  try {
+    // Check recent transactions for bridge/mixer funding
+    const recentTxs = agent.getRecentTransactions(100);
+    const addressTxs = recentTxs.filter((tx: any) => 
+      (tx.from?.toLowerCase() === lowerAddress) || (tx.to?.toLowerCase() === lowerAddress)
+    ).slice(0, 20);
+
+    for (const tx of addressTxs) {
+      const from = (tx.from || "").toLowerCase();
+      const to = (tx.to || "").toLowerCase();
+      
+      // Check if funded by bridge
+      for (const bridgeAddr of BRIDGE_ADDRESSES) {
+        if (from.includes(bridgeAddr.toLowerCase()) || to.includes(bridgeAddr.toLowerCase())) {
+          fundedByBridge = true;
+          baseRisk += 30;
+          break;
+        }
+      }
+      
+      // Check if funded by mixer
+      for (const mixerAddr of MIXER_ADDRESSES) {
+        if (from.includes(mixerAddr.toLowerCase()) || to.includes(mixerAddr.toLowerCase())) {
+          fundedByMixer = true;
+          baseRisk += 40;
+          break;
+        }
+      }
+    }
+  } catch (err) {
+    console.warn("[Workflow Step 1] Triage error:", err);
+  }
+
+  // Step 2: Dependency Mapping - "Who else has this wallet interacted with?"
+  const relatedAddresses: string[] = [];
+  let clusterMatch = false;
+  let hopDistance = 999;
+
+  try {
+    // Check direct match with Syndicate-7 cluster
+    const clusterEntry = SYNDICATE_7_CLUSTER.find(c => c.address.toLowerCase() === lowerAddress);
+    if (clusterEntry) {
+      clusterMatch = true;
+      hopDistance = 0;
+      relatedAddresses.push(clusterEntry.address);
+      baseRisk = Math.max(baseRisk, clusterEntry.riskScore);
+    }
+
+    // Check 1-hop connections (transactions with cluster addresses)
+    const recentTxs = agent.getRecentTransactions(500);
+    for (const tx of recentTxs) {
+      const from = (tx.from || "").toLowerCase();
+      const to = (tx.to || "").toLowerCase();
+      
+      if (from === lowerAddress || to === lowerAddress) {
+        const otherAddr = from === lowerAddress ? to : from;
+        
+        // Check if other address is in cluster
+        const clusterMatchOther = SYNDICATE_7_CLUSTER.find(c => c.address.toLowerCase() === otherAddr);
+        if (clusterMatchOther && !relatedAddresses.includes(clusterMatchOther.address)) {
+          relatedAddresses.push(clusterMatchOther.address);
+          clusterMatch = true;
+          if (hopDistance > 1) hopDistance = 1;
+          baseRisk = Math.max(baseRisk, clusterMatchOther.riskScore - 10);
+        }
+        
+        // Track unique related addresses
+        if (otherAddr && otherAddr !== lowerAddress && !relatedAddresses.includes(otherAddr)) {
+          relatedAddresses.push(otherAddr);
+        }
+      }
+    }
+
+    // Limit related addresses
+    relatedAddresses.splice(50);
+  } catch (err) {
+    console.warn("[Workflow Step 2] Dependency mapping error:", err);
+  }
+
+  // Step 3: Behavioral Classification - "What is the primary action?"
+  let behavioralClass = "Unknown";
+  try {
+    const recentTxs = agent.getRecentTransactions(100);
+    const addressTxs = recentTxs.filter((tx: any) => 
+      (tx.from?.toLowerCase() === lowerAddress) || (tx.to?.toLowerCase() === lowerAddress)
+    );
+
+    if (addressTxs.length === 0) {
+      behavioralClass = "Dormant/New";
+    } else {
+      const firstTx = addressTxs[addressTxs.length - 1]; // Oldest transaction
+      const hasContractDeployment = addressTxs.some((tx: any) => tx.to === null || tx.contractAddress);
+      const hasCEXTransfer = addressTxs.some((tx: any) => {
+        const to = (tx.to || "").toLowerCase();
+        return to.includes("binance") || to.includes("kraken") || to.includes("coinbase");
+      });
+      const hasStaking = addressTxs.some((tx: any) => {
+        const to = (tx.to || "").toLowerCase();
+        return to.includes("lido") || to.includes("stake");
+      });
+
+      if (hasContractDeployment) {
+        behavioralClass = "Deployer";
+        baseRisk += 20;
+      } else if (hasCEXTransfer) {
+        behavioralClass = "Exit Node (CEX)";
+        baseRisk += 15;
+      } else if (hasStaking) {
+        behavioralClass = "Yield Staker";
+        baseRisk += 10;
+      } else if (addressTxs.length > 1000) {
+        behavioralClass = "High-Velocity Trader";
+        baseRisk += 25;
+      } else {
+        behavioralClass = "Standard Wallet";
+      }
+    }
+  } catch (err) {
+    console.warn("[Workflow Step 3] Behavioral classification error:", err);
+  }
+
+  // Step 4: Payload Inspection - "What does the code actually do?"
+  const highRiskFunctions: string[] = [];
+  let contractVerified = false;
+
+  try {
+    // Try to get contract bytecode (simplified - would need actual contract fetch)
+    // For now, check transaction input data for function signatures
+    const recentTxs = agent.getRecentTransactions(200);
+    const addressTxs = recentTxs.filter((tx: any) => 
+      (tx.from?.toLowerCase() === lowerAddress || tx.to?.toLowerCase() === lowerAddress)
+    );
+
+    const functionSignatures = new Set<string>();
+    for (const tx of addressTxs) {
+      const input = (tx.input || tx.data || "").toLowerCase();
+      if (input && input.startsWith("0x")) {
+        const sig = input.substring(0, 10);
+        
+        // Check against high-risk function signatures
+        for (const func of HIGH_RISK_FUNCTIONS) {
+          if (sig === func.signature || input.includes(func.signature.substring(2))) {
+            if (!highRiskFunctions.includes(func.name)) {
+              highRiskFunctions.push(func.name);
+              baseRisk = Math.max(baseRisk, func.riskScore);
+            }
+          }
+        }
+        functionSignatures.add(sig);
+      }
+    }
+
+    // If address is a contract, assume unverified unless proven otherwise
+    if (addressTxs.length > 0) {
+      contractVerified = false; // Would need Etherscan API check
+    }
+  } catch (err) {
+    console.warn("[Workflow Step 4] Payload inspection error:", err);
+  }
+
+  // Step 5: SAR Ready determination
+  const sarReady = baseRisk >= 70 || clusterMatch || highRiskFunctions.length > 0 || fundedByMixer;
+
+  return {
+    triage: { fundedByBridge, fundedByMixer, baseRisk: Math.min(100, baseRisk) },
+    dependencyMapping: { clusterMatch, relatedAddresses: relatedAddresses.slice(0, 20), hopDistance },
+    behavioralClass,
+    payloadInspection: { highRiskFunctions, contractVerified },
+    sarReady,
+  };
+}
+
+async function generateSarSummary(record: InvestigationRecord, aiNarrative: string): Promise<string> {
+  if (!openai) {
+    return `SAR-ready summary (fallback): Address ${record.address} Token ${record.token || "n/a"}, Risk ${record.riskScore}, Alerts ${record.alerts.length}, Chains ${record.chainActivity.length}.`;
+  }
+
+  const alertSnippet = record.alerts
+    .map((a) => `${a.alertType || a.type || "alert"} | risk=${a.riskScore ?? ""} | desc=${a.description || ""}`)
+    .slice(0, 10)
+    .join("\n");
+  const chainSnippet = record.chainActivity.map((c) => `${c.chain}: tx=${c.txCount}, active=${c.hasActivity}`).join("\n");
+
+  // Build high-risk transactions snippet for SAR
+  const highRiskTxSnippet = record.highRiskTransactions && record.highRiskTransactions.length > 0
+    ? `HIGH-RISK TRANSACTIONS ANALYSIS (${record.highRiskTransactions.length} transactions with risk score ≥70):\n${record.highRiskTransactions.slice(0, 10).map((tx, idx) => 
+      `${idx + 1}. Hash: ${tx.hash.substring(0, 20)}... | Risk: ${tx.riskScore}/100 | Value: ${(Number(tx.value) / 1e18).toFixed(4)} ETH | Reason: ${tx.riskReason}`
+    ).join("\n")}`
+    : "No high-risk transactions found (all transactions analyzed have risk score <70).";
+
+  // Build detailed workflow analysis snippet for SAR
+  const workflowDetails = record.workflowAnalysis ? `
+=== MASTER INVESTIGATIVE BLUEPRINT - 5-STEP WORKFLOW ANALYSIS ===
+
+Step 1: TRIAGE (Gas Funding Source Analysis)
+- Funded by Bridge: ${record.workflowAnalysis.triage.fundedByBridge ? "YES ⚠️ (+30 risk)" : "NO"}
+- Funded by Mixer: ${record.workflowAnalysis.triage.fundedByMixer ? "YES ⚠️ (+40 risk)" : "NO"}
+- Base Risk Score: ${record.workflowAnalysis.triage.baseRisk}/100
+- Risk Rationale: ${record.workflowAnalysis.triage.fundedByMixer ? "Address received funds from mixer service (high laundering risk)" : record.workflowAnalysis.triage.fundedByBridge ? "Address received funds via bridge (potential anonymity layer)" : "No bridge/mixer funding detected"}
+
+Step 2: DEPENDENCY MAPPING (Syndicate-7 Cluster Analysis)
+- Syndicate-7 Cluster Match: ${record.workflowAnalysis.dependencyMapping.clusterMatch ? `YES ⚠️⚠️⚠️ (Direct Match - Hop Distance: ${record.workflowAnalysis.dependencyMapping.hopDistance})` : "NO"}
+- Hop Distance: ${record.workflowAnalysis.dependencyMapping.hopDistance} ${record.workflowAnalysis.dependencyMapping.hopDistance === 0 ? "(Direct match in cluster database)" : record.workflowAnalysis.dependencyMapping.hopDistance < 999 ? "(1-hop connection to cluster)" : "(No cluster connection)"}
+- Related Addresses Discovered: ${record.workflowAnalysis.dependencyMapping.relatedAddresses.length}
+- Risk Assessment: ${record.workflowAnalysis.dependencyMapping.clusterMatch ? "HIGH - Address is part of known malicious cluster (Syndicate-7). Immediate SAR filing recommended." : "LOW - No connection to known malicious clusters"}
+
+Step 3: BEHAVIORAL CLASSIFICATION (Wallet Role Analysis)
+- Classification: ${record.workflowAnalysis.behavioralClass}
+- Behavioral Risk: ${record.workflowAnalysis.behavioralClass.includes("Deployer") ? "HIGH - May deploy malicious contracts" : record.workflowAnalysis.behavioralClass.includes("Exit") ? "HIGH - Funds exiting to CEX (KYC point)" : record.workflowAnalysis.behavioralClass.includes("Staker") ? "MEDIUM - Asset parking/staking activity" : record.workflowAnalysis.behavioralClass.includes("High-Velocity") ? "HIGH - Unusual transaction volume" : "LOW - Standard wallet behavior"}
+
+Step 4: PAYLOAD INSPECTION (High-Risk Function Detection)
+- High-Risk Functions Detected: ${record.workflowAnalysis.payloadInspection.highRiskFunctions.length} ${record.workflowAnalysis.payloadInspection.highRiskFunctions.length > 0 ? "⚠️" : ""}
+- Functions: ${record.workflowAnalysis.payloadInspection.highRiskFunctions.length > 0 ? record.workflowAnalysis.payloadInspection.highRiskFunctions.join(", ") : "None"}
+- Contract Verification Status: ${record.workflowAnalysis.payloadInspection.contractVerified ? "Verified" : "Unverified"}
+- Risk Assessment: ${record.workflowAnalysis.payloadInspection.highRiskFunctions.length > 0 ? `CRITICAL - Contract contains ${record.workflowAnalysis.payloadInspection.highRiskFunctions.length} high-risk function(s) indicating potential drainer/malicious behavior` : "No high-risk functions detected in transaction payloads"}
+
+Step 5: SAR READINESS ASSESSMENT
+- SAR Ready: ${record.workflowAnalysis.sarReady ? "YES ✅ - Immediate SAR filing recommended" : "NO - Monitor only"}
+- SAR Triggers: ${record.workflowAnalysis.sarReady ? [
+  record.workflowAnalysis.triage.baseRisk >= 70 ? `Base risk score ≥70 (${record.workflowAnalysis.triage.baseRisk})` : null,
+  record.workflowAnalysis.dependencyMapping.clusterMatch ? "Syndicate-7 cluster match" : null,
+  record.workflowAnalysis.payloadInspection.highRiskFunctions.length > 0 ? `High-risk functions detected: ${record.workflowAnalysis.payloadInspection.highRiskFunctions.join(", ")}` : null,
+  record.workflowAnalysis.triage.fundedByMixer ? "Funded by mixer service" : null,
+].filter(Boolean).join("; ") : "None - Address does not meet SAR filing criteria"}
+
+=== END WORKFLOW ANALYSIS ===` : "";
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4.1-mini",
+      temperature: 0.2,
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are drafting a comprehensive SAR/STR-ready summary for regulators. Include ALL workflow analysis details, be factual, structured, use clear sections, and provide actionable compliance recommendations. Include: entity (address/token), risk score breakdown, key behavior, detailed 5-step workflow analysis, risk rationale, chain footprint, and suggested compliance action.",
+        },
+        {
+          role: "user",
+          content: `Address: ${record.address}
+Token: ${record.token || "n/a"}
+Risk Score: ${record.riskScore}/100
+Status: ${record.status || "flagged"}
+Alerts: ${alertSnippet || "none"}
+Chain Activity: ${chainSnippet}
+${workflowDetails}
+High-Risk Transactions Analysis:
+${highRiskTxSnippet}
+AI Narrative: ${aiNarrative}
+
+Generate a detailed SAR summary that includes all workflow analysis findings AND high-risk transaction analysis. Explain why each high-risk transaction is flagged and its compliance implications.`,
+        },
+      ],
+    });
+    return completion.choices[0]?.message?.content?.trim() || "SAR summary unavailable.";
+  } catch (err: any) {
+    console.warn("SAR generation failed:", err?.message || err);
+    return `SAR Summary (fallback): Address ${record.address} | Risk: ${record.riskScore}/100 | Status: ${record.status || "flagged"} | Cluster Match: ${record.workflowAnalysis?.dependencyMapping.clusterMatch || false} | SAR Ready: ${record.workflowAnalysis?.sarReady || false}`;
+  }
+}
+
+async function runSar(address: string, token?: string, saveDocxPath?: string) {
+  const { agent } = await initializeAgent();
+  const chainData = await buildCrossChainSnapshot(address, agent);
+  const chainActivity = safeSerialize(chainData);
+
+  // Run Master Investigative Blueprint 5-Step Workflow
+  const workflowAnalysis = await runMasterWorkflow(address, agent);
+
+  const alerts: any[] = [];
+  if (marketManipulationDetector) {
+    alerts.push(...marketManipulationDetector.getAddressAlerts(address as Address, 100));
+    if (token) {
+      alerts.push(...marketManipulationDetector.getTokenAlerts(token as Address, 100));
+    }
+  }
+  const safeAlerts = safeSerialize(alerts);
+
+  // Analyze high-risk transactions
+  console.log(`[Investigation] Analyzing high-risk transactions for ${address}...`);
+  const highRiskTransactions = await analyzeHighRiskTransactions(address, 50);
+  console.log(`[Investigation] Found ${highRiskTransactions?.length || 0} high-risk transactions`);
+
+  // Combine workflow baseRisk with alert risks and high-risk transaction risks
+  const maxAlertRisk = alerts.length ? Math.max(...alerts.map((a) => Number(a.riskScore || 0))) : 20;
+  const maxTxRisk = highRiskTransactions && highRiskTransactions.length > 0
+    ? Math.max(...highRiskTransactions.map((tx) => tx.riskScore))
+    : 20;
+  const combinedRisk = Math.max(workflowAnalysis.triage.baseRisk, maxAlertRisk, maxTxRisk);
+  const riskScore = Math.min(100, Math.max(10, combinedRisk));
+  const status: "flagged" | "cleared" = (safeAlerts.length === 0 && riskScore <= 20 && !workflowAnalysis.sarReady && (!highRiskTransactions || highRiskTransactions.length === 0)) ? "cleared" : "flagged";
+
+  const aiNarrative = await generateAiNarrative({
+    address,
+    token,
+    chainActivity: chainActivity,
+    alerts: safeAlerts,
+  });
+
+  const recordBase: InvestigationRecord = {
+    id: `${Date.now()}-${address}`,
+    address,
+    token,
+    riskScore,
+    summary: aiNarrative,
+    alerts: safeAlerts,
+    chainActivity,
+    timestamp: Date.now(),
+    status,
+    workflowAnalysis,
+    highRiskTransactions: highRiskTransactions || undefined,
+  };
+
+  const sarText = await generateSarSummary(recordBase, aiNarrative);
+  const record: InvestigationRecord = { ...recordBase, sarText };
+
+  await saveInvestigationRecord(record);
+
+  // Auto-save DOCX report to organized reports folder (flagged/cleared + risk level)
+  await ensureReportsDir();
+  const reportDir = getReportDirectory(record);
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+  const reportFilename = `investigation-${address.slice(2, 10)}-${timestamp}.docx`;
+  const reportPath = path.join(reportDir, reportFilename);
+  
+  try {
+    const buffer = await buildDocxReport(record, aiNarrative, sarText);
+    await fsp.writeFile(reportPath, Buffer.from(buffer));
+    console.log(`[Investigation] Report saved to organized folder: ${reportPath}`);
+  } catch (err: any) {
+    console.warn(`[Investigation] Failed to save report: ${err?.message || err}`);
+  }
+
+  // Also save to custom path if provided
+  if (saveDocxPath) {
+    await fsp.mkdir(path.dirname(saveDocxPath), { recursive: true });
+    const buffer = await buildDocxReport(record, aiNarrative, sarText);
+    await fsp.writeFile(saveDocxPath, Buffer.from(buffer));
+  }
+
+  return record;
+}
+
+async function collectAutoSarAddresses(envAddresses: string[]): Promise<string[]> {
+  const addresses = new Set<string>();
+  envAddresses.forEach((a) => {
+    if (a.startsWith("0x") && a.length === 42) addresses.add(a.toLowerCase());
+  });
+
+  // From stored history (flagged addresses with high/medium risk only)
+  // Only investigate: flagged addresses, high risk (≥70), medium risk (40-69), and market manipulation
+  try {
+    const history = await loadInvestigationHistory();
+    history
+      .filter((r) => {
+        const status = r.status || "flagged";
+        const riskScore = r.riskScore || 0;
+        // Only include: flagged status OR high risk (≥70) OR medium risk (40-69)
+        return status === "flagged" || riskScore >= 40;
+      })
+      .forEach((r) => {
+        if (r.address?.toLowerCase().startsWith("0x") && r.address.length === 42) {
+          addresses.add(r.address.toLowerCase());
+        }
+      });
+  } catch {
+    // ignore
+  }
+
+  // From active market manipulation alerts only
+  // Do NOT collect from enhancedSuspiciousActivityTracker
+  try {
+    if (marketManipulationDetector) {
+      const alerts = marketManipulationDetector.getAlerts(500);
+      alerts.forEach((a) => {
+        if (a.address?.toLowerCase().startsWith("0x") && a.address.length === 42) {
+          addresses.add(a.address.toLowerCase());
+        }
+      });
+    }
+  } catch {
+    // ignore
+  }
+
+  return Array.from(addresses);
+}
+
+function startAutoSarScheduler() {
+  const addressesEnv = process.env.AUTO_SAR_ADDRESSES;
+  const envAddresses = addressesEnv
+    ? addressesEnv
+        .split(",")
+        .map((a) => a.trim())
+        .filter((a) => a.startsWith("0x") && a.length === 42)
+    : [];
+
+  const token = process.env.AUTO_SAR_TOKEN;
+  const intervalMs = Number(process.env.AUTO_SAR_INTERVAL_MS || 600_000);
+
+  const autoDir = AUTO_SAR_DIR;
+
+  const runAll = async () => {
+    const targets = await collectAutoSarAddresses(envAddresses);
+    if (targets.length === 0) {
+      console.log("[AutoSAR] No targets found.");
+      return;
+    }
+    console.log(`[AutoSAR] Running for ${targets.length} addresses...`);
+    for (const addr of targets) {
+      try {
+        const outfile = path.join(autoDir, `sar-${addr.slice(2, 10)}-${Date.now()}.docx`);
+        await runSar(addr, token, outfile);
+        console.log(`[AutoSAR] Saved ${outfile}`);
+      } catch (err) {
+        console.warn(`[AutoSAR] Failed for ${addr}:`, err);
+      }
+    }
+  };
+
+  // immediate kick
+  runAll();
+  // schedule
+  setInterval(runAll, intervalMs);
+}
+
+function paragraph(text: string, opts?: { bold?: boolean; size?: number; heading?: any }) {
+  if (opts?.heading) {
+    return new Paragraph({ text, heading: opts.heading });
+  }
+  return new Paragraph({
+    children: [
+      new TextRun({
+        text,
+        bold: opts?.bold,
+        size: opts?.size,
+      }),
+    ],
+  });
+}
+
+function buildChainTable(chainActivity: Array<{ chain: string; hasActivity: boolean; txCount: number; balance?: string }>) {
+  const rows = [
+    new TableRow({
+      children: [
+        new TableCell({ children: [paragraph("Chain", { bold: true })] }),
+        new TableCell({ children: [paragraph("Activity", { bold: true })] }),
+        new TableCell({ children: [paragraph("Tx Count", { bold: true })] }),
+        new TableCell({ children: [paragraph("Balance (wei)", { bold: true })] }),
+      ],
+    }),
+    ...chainActivity.map(
+      (c) =>
+        new TableRow({
+          children: [
+            new TableCell({ children: [paragraph(c.chain)] }),
+            new TableCell({ children: [paragraph(c.hasActivity ? "Yes" : "No")] }),
+            new TableCell({ children: [paragraph(String(c.txCount || 0))] }),
+            new TableCell({ children: [paragraph(c.balance || "0")] }),
+          ],
+        })
+    ),
+  ];
+
+  return new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    rows,
+  });
+}
+
+function buildAlertsTable(alerts: any[]) {
+  const rows = [
+    new TableRow({
+      children: [
+        new TableCell({ children: [paragraph("Type", { bold: true })] }),
+        new TableCell({ children: [paragraph("Risk", { bold: true })] }),
+        new TableCell({ children: [paragraph("Severity", { bold: true })] }),
+        new TableCell({ children: [paragraph("Description", { bold: true })] }),
+      ],
+    }),
+    ...(alerts.slice(0, 15).map(
+      (a) =>
+        new TableRow({
+          children: [
+            new TableCell({ children: [paragraph(a.alertType || a.type || "alert")] }),
+            new TableCell({ children: [paragraph(String(a.riskScore ?? ""))] }),
+            new TableCell({ children: [paragraph(a.severity || "")] }),
+            new TableCell({ children: [paragraph(a.description || "")] }),
+          ],
+        })
+    ) || []),
+  ];
+
+  return new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    rows,
+  });
+}
+
+function buildHighRiskTransactionsTable(transactions: InvestigationRecord["highRiskTransactions"]) {
+  if (!transactions || transactions.length === 0) {
+    return paragraph("No high-risk transactions found.");
+  }
+
+  const rows = [
+    new TableRow({
+      children: [
+        new TableCell({ children: [paragraph("Hash", { bold: true })] }),
+        new TableCell({ children: [paragraph("From", { bold: true })] }),
+        new TableCell({ children: [paragraph("To", { bold: true })] }),
+        new TableCell({ children: [paragraph("Value (ETH)", { bold: true })] }),
+        new TableCell({ children: [paragraph("Risk Score", { bold: true })] }),
+        new TableCell({ children: [paragraph("Risk Reason", { bold: true })] }),
+      ],
+    }),
+    ...transactions.slice(0, 20).map(
+      (tx) =>
+        new TableRow({
+          children: [
+            new TableCell({ children: [paragraph(tx.hash.substring(0, 16) + "...")] }),
+            new TableCell({ children: [paragraph(tx.from.substring(0, 12) + "...")] }),
+            new TableCell({ children: [paragraph(tx.to ? tx.to.substring(0, 12) + "..." : "Contract Creation")] }),
+            new TableCell({ children: [paragraph((Number(tx.value) / 1e18).toFixed(6))] }),
+            new TableCell({ children: [paragraph(String(tx.riskScore))] }),
+            new TableCell({ children: [paragraph(tx.riskReason || "N/A")] }),
+          ],
+        })
+    ),
+  ];
+
+  return new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    rows,
+  });
+}
+
+function safeSerialize<T>(value: T): T {
+  // Convert BigInt to string recursively and strip non-serializable values
+  return JSON.parse(JSON.stringify(serializeBigInt(value)));
+}
+
+// Build Findings section with comprehensive address analysis
+function buildFindingsSection(record: InvestigationRecord): Paragraph[] {
+  const findings: Paragraph[] = [];
+  const lowerAddress = record.address.toLowerCase();
+  
+  // Check if address is in Syndicate-7 cluster
+  const clusterEntry = SYNDICATE_7_CLUSTER.find(c => c.address.toLowerCase() === lowerAddress);
+  
+  // Determine classification
+  let classification = "Unknown";
+  let classificationReason = "";
+  
+  if (clusterEntry) {
+    classification = clusterEntry.role;
+    classificationReason = clusterEntry.status;
+  } else if (record.workflowAnalysis?.behavioralClass) {
+    classification = record.workflowAnalysis.behavioralClass;
+    if (classification.includes("Exchange") || classification.includes("CEX")) {
+      classification = "Exchange Deposit";
+    } else if (classification.includes("Deployer")) {
+      classification = "Contract Deployer";
+    } else if (classification.includes("Staker")) {
+      classification = "Yield Staker";
+    }
+  }
+  
+  // Get related addresses in cluster
+  const relatedClusterAddresses: Array<{ address: string; role: string; status: string }> = [];
+  if (record.workflowAnalysis?.dependencyMapping.clusterMatch && clusterEntry) {
+    for (const relatedAddr of record.workflowAnalysis.dependencyMapping.relatedAddresses.slice(0, 10)) {
+      const relatedClusterEntry = SYNDICATE_7_CLUSTER.find(c => c.address.toLowerCase() === relatedAddr.toLowerCase());
+      if (relatedClusterEntry) {
+        relatedClusterAddresses.push({
+          address: relatedClusterEntry.address,
+          role: relatedClusterEntry.role,
+          status: relatedClusterEntry.status,
+        });
+      }
+    }
+  }
+  
+  // Build findings content
+  findings.push(paragraph("Key Findings", { heading: HeadingLevel.HEADING_2 }));
+  
+  findings.push(paragraph("Address Classification", { bold: true, heading: HeadingLevel.HEADING_3 }));
+  findings.push(paragraph(`Classification: ${classification}`));
+  if (classificationReason) {
+    findings.push(paragraph(`Status: ${classificationReason}`));
+  }
+  findings.push(paragraph(`Risk Score: ${record.riskScore}/100`));
+  findings.push(paragraph(`Overall Status: ${record.status === "flagged" ? "⚠️ FLAGGED" : "✓ CLEARED"}`));
+  
+  // Cluster membership
+  if (clusterEntry) {
+    findings.push(paragraph(""));
+    findings.push(paragraph("Syndicate-7 Cluster Membership", { bold: true, heading: HeadingLevel.HEADING_3 }));
+    findings.push(paragraph(`⚠️ DIRECT MATCH - This address is part of the Syndicate-7 cluster database`));
+    findings.push(paragraph(`Role: ${clusterEntry.role}`));
+    findings.push(paragraph(`Status: ${clusterEntry.status}`));
+    findings.push(paragraph(`Cluster Risk Score: ${clusterEntry.riskScore}/100`));
+    
+    if (relatedClusterAddresses.length > 0) {
+      findings.push(paragraph(""));
+      findings.push(paragraph("Related Addresses in Cluster:", { bold: true }));
+      relatedClusterAddresses.forEach(rel => {
+        findings.push(paragraph(`  • ${rel.address} - ${rel.role} (${rel.status})`));
+      });
+    }
+  } else if (record.workflowAnalysis?.dependencyMapping.clusterMatch) {
+    findings.push(paragraph(""));
+    findings.push(paragraph("Syndicate-7 Cluster Connection", { bold: true, heading: HeadingLevel.HEADING_3 }));
+    findings.push(paragraph(`Connected to Syndicate-7 cluster (Hop Distance: ${record.workflowAnalysis.dependencyMapping.hopDistance})`));
+    findings.push(paragraph(`Related Addresses Discovered: ${record.workflowAnalysis.dependencyMapping.relatedAddresses.length}`));
+  }
+  
+  // Risk indicators
+  findings.push(paragraph(""));
+  findings.push(paragraph("Risk Indicators", { bold: true, heading: HeadingLevel.HEADING_3 }));
+  
+  const riskIndicators: string[] = [];
+  if (record.workflowAnalysis?.triage.fundedByMixer) {
+    riskIndicators.push("⚠️ Funded by mixer service (high laundering risk)");
+  }
+  if (record.workflowAnalysis?.triage.fundedByBridge) {
+    riskIndicators.push("⚠️ Funded via bridge (potential anonymity layer)");
+  }
+  if (record.workflowAnalysis?.payloadInspection.highRiskFunctions.length > 0) {
+    riskIndicators.push(`⚠️ High-risk functions detected: ${record.workflowAnalysis.payloadInspection.highRiskFunctions.join(", ")}`);
+  }
+  if (record.highRiskTransactions && record.highRiskTransactions.length > 0) {
+    riskIndicators.push(`⚠️ ${record.highRiskTransactions.length} high-risk transactions detected`);
+  }
+  if (record.alerts && record.alerts.length > 0) {
+    riskIndicators.push(`⚠️ ${record.alerts.length} active alerts`);
+  }
+  
+  if (riskIndicators.length > 0) {
+    riskIndicators.forEach(indicator => {
+      findings.push(paragraph(indicator));
+    });
+  } else {
+    findings.push(paragraph("No major risk indicators detected"));
+  }
+  
+  // Chain activity summary
+  findings.push(paragraph(""));
+  findings.push(paragraph("Chain Activity Summary", { bold: true, heading: HeadingLevel.HEADING_3 }));
+  const activeChains = record.chainActivity?.filter(c => c.hasActivity) || [];
+  if (activeChains.length > 0) {
+    findings.push(paragraph(`Active on ${activeChains.length} chain(s):`));
+    activeChains.forEach(chain => {
+      findings.push(paragraph(`  • ${chain.chain}: ${chain.txCount} transactions`));
+    });
+  } else {
+    findings.push(paragraph("No significant chain activity detected"));
+  }
+  
+  // Conclusion
+  findings.push(paragraph(""));
+  findings.push(paragraph("Conclusion", { bold: true, heading: HeadingLevel.HEADING_3 }));
+  
+  if (clusterEntry) {
+    findings.push(paragraph(`This address is flagged in the Syndicate-7 cluster database as a "${clusterEntry.role}" with status "${clusterEntry.status}". ` +
+      `With a risk score of ${record.riskScore}/100, ${record.status === "flagged" ? "immediate SAR filing is recommended" : "monitoring is advised"}.`));
+  } else if (record.riskScore >= 70) {
+    findings.push(paragraph(`This address has a high risk score (${record.riskScore}/100) indicating ${record.status === "flagged" ? "suspicious activity requiring immediate attention" : "potential compliance concerns"}.`));
+  } else if (record.riskScore >= 40) {
+    findings.push(paragraph(`This address has a moderate risk score (${record.riskScore}/100) and should be monitored for suspicious patterns.`));
+  } else {
+    findings.push(paragraph(`This address has a low risk score (${record.riskScore}/100) with minimal suspicious indicators.`));
+  }
+  
+  return findings;
+}
+
+async function buildDocxReport(record: InvestigationRecord, aiNarrative: string, sarText?: string) {
+  const workflowSections = record.workflowAnalysis ? [
+    paragraph("Master Investigative Blueprint - 5-Step Workflow Analysis", { heading: HeadingLevel.HEADING_2 }),
+    paragraph("Step 1: TRIAGE (Gas Funding Source Analysis)", { heading: HeadingLevel.HEADING_3 }),
+    paragraph(`Funded by Bridge: ${record.workflowAnalysis.triage.fundedByBridge ? "YES ⚠️ (+30 risk)" : "NO"}`),
+    paragraph(`Funded by Mixer: ${record.workflowAnalysis.triage.fundedByMixer ? "YES ⚠️ (+40 risk)" : "NO"}`),
+    paragraph(`Base Risk Score: ${record.workflowAnalysis.triage.baseRisk}/100`),
+    paragraph(`Risk Rationale: ${record.workflowAnalysis.triage.fundedByMixer ? "Address received funds from mixer service (high laundering risk)" : record.workflowAnalysis.triage.fundedByBridge ? "Address received funds via bridge (potential anonymity layer)" : "No bridge/mixer funding detected"}`),
+    paragraph("Step 2: DEPENDENCY MAPPING (Syndicate-7 Cluster Analysis)", { heading: HeadingLevel.HEADING_3 }),
+    paragraph(`Syndicate-7 Cluster Match: ${record.workflowAnalysis.dependencyMapping.clusterMatch ? `YES ⚠️⚠️⚠️ (Direct Match - Hop Distance: ${record.workflowAnalysis.dependencyMapping.hopDistance})` : "NO"}`),
+    paragraph(`Hop Distance: ${record.workflowAnalysis.dependencyMapping.hopDistance} ${record.workflowAnalysis.dependencyMapping.hopDistance === 0 ? "(Direct match in cluster database)" : record.workflowAnalysis.dependencyMapping.hopDistance < 999 ? "(1-hop connection to cluster)" : "(No cluster connection)"}`),
+    paragraph(`Related Addresses Discovered: ${record.workflowAnalysis.dependencyMapping.relatedAddresses.length}`),
+    paragraph(`Risk Assessment: ${record.workflowAnalysis.dependencyMapping.clusterMatch ? "HIGH - Address is part of known malicious cluster (Syndicate-7). Immediate SAR filing recommended." : "LOW - No connection to known malicious clusters"}`),
+    paragraph("Step 3: BEHAVIORAL CLASSIFICATION (Wallet Role Analysis)", { heading: HeadingLevel.HEADING_3 }),
+    paragraph(`Classification: ${record.workflowAnalysis.behavioralClass}`),
+    paragraph(`Behavioral Risk: ${record.workflowAnalysis.behavioralClass.includes("Deployer") ? "HIGH - May deploy malicious contracts" : record.workflowAnalysis.behavioralClass.includes("Exit") ? "HIGH - Funds exiting to CEX (KYC point)" : record.workflowAnalysis.behavioralClass.includes("Staker") ? "MEDIUM - Asset parking/staking activity" : record.workflowAnalysis.behavioralClass.includes("High-Velocity") ? "HIGH - Unusual transaction volume" : "LOW - Standard wallet behavior"}`),
+    paragraph("Step 4: PAYLOAD INSPECTION (High-Risk Function Detection)", { heading: HeadingLevel.HEADING_3 }),
+    paragraph(`High-Risk Functions Detected: ${record.workflowAnalysis.payloadInspection.highRiskFunctions.length} ${record.workflowAnalysis.payloadInspection.highRiskFunctions.length > 0 ? "⚠️" : ""}`),
+    paragraph(`Functions: ${record.workflowAnalysis.payloadInspection.highRiskFunctions.length > 0 ? record.workflowAnalysis.payloadInspection.highRiskFunctions.join(", ") : "None"}`),
+    paragraph(`Contract Verification Status: ${record.workflowAnalysis.payloadInspection.contractVerified ? "Verified" : "Unverified"}`),
+    paragraph(`Risk Assessment: ${record.workflowAnalysis.payloadInspection.highRiskFunctions.length > 0 ? `CRITICAL - Contract contains ${record.workflowAnalysis.payloadInspection.highRiskFunctions.length} high-risk function(s) indicating potential drainer/malicious behavior` : "No high-risk functions detected in transaction payloads"}`),
+    paragraph("Step 5: SAR READINESS ASSESSMENT", { heading: HeadingLevel.HEADING_3 }),
+    paragraph(`SAR Ready: ${record.workflowAnalysis.sarReady ? "YES ✅ - Immediate SAR filing recommended" : "NO - Monitor only"}`),
+    paragraph(`SAR Triggers: ${record.workflowAnalysis.sarReady ? [
+      record.workflowAnalysis.triage.baseRisk >= 70 ? `Base risk score ≥70 (${record.workflowAnalysis.triage.baseRisk})` : null,
+      record.workflowAnalysis.dependencyMapping.clusterMatch ? "Syndicate-7 cluster match" : null,
+      record.workflowAnalysis.payloadInspection.highRiskFunctions.length > 0 ? `High-risk functions detected: ${record.workflowAnalysis.payloadInspection.highRiskFunctions.join(", ")}` : null,
+      record.workflowAnalysis.triage.fundedByMixer ? "Funded by mixer service" : null,
+    ].filter(Boolean).join("; ") : "None - Address does not meet SAR filing criteria"}`),
+  ] : [];
+
+  const doc = new Document({
+    sections: [
+      {
+        children: [
+          paragraph("Market Manipulation Investigation Report", { heading: HeadingLevel.HEADING_1 }),
+          paragraph(`Address: ${record.address}`, { bold: true }),
+          paragraph(`Token: ${record.token || "n/a"}`),
+          paragraph(`Risk Score: ${record.riskScore}/100`),
+          paragraph(`Status: ${record.status || "flagged"}`),
+          paragraph(`Generated: ${new Date(record.timestamp).toISOString()}`),
+          paragraph("Executive Summary", { heading: HeadingLevel.HEADING_2 }),
+          paragraph(aiNarrative),
+          ...buildFindingsSection(record),
+          ...(sarText ? [paragraph("SAR Summary", { heading: HeadingLevel.HEADING_2 }), paragraph(sarText)] : []),
+          ...workflowSections,
+          ...(record.highRiskTransactions && record.highRiskTransactions.length > 0 ? [
+            paragraph("Recent High-Risk Transactions Analysis", { heading: HeadingLevel.HEADING_2 }),
+            paragraph(`Found ${record.highRiskTransactions.length} high-risk transactions (risk score ≥70). Below are the top transactions with detailed risk analysis:`),
+            buildHighRiskTransactionsTable(record.highRiskTransactions),
+          ] : []),
+          paragraph("Chain Activity", { heading: HeadingLevel.HEADING_2 }),
+          buildChainTable(record.chainActivity),
+          paragraph("Alerts & Risk Indicators", { heading: HeadingLevel.HEADING_2 }),
+          buildAlertsTable(record.alerts),
+        ],
+      },
+    ],
+  });
+
+  return Packer.toBuffer(doc);
+}
+
+// Build consolidated summary report with all risk addresses
+async function buildConsolidatedReport(): Promise<Buffer | null> {
+  try {
+    const history = await loadInvestigationHistory();
+    
+    // Filter for flagged addresses, high risk (≥70), medium risk (40-69), and market manipulation only
+    // Do NOT include low risk (20-39) or general suspicious activity
+    const riskAddresses = history.filter(r => {
+      const status = r.status || "flagged";
+      const riskScore = r.riskScore || 0;
+      // Only include: flagged status OR high risk (≥70) OR medium risk (40-69)
+      // Exclude low risk (20-39) and general suspicious activity
+      return status === "flagged" || riskScore >= 40;
+    });
+
+    if (riskAddresses.length === 0) {
+      console.log("[ConsolidatedReport] No risk addresses found to report.");
+      return null;
+    }
+
+    // Group by risk level (only high and medium, no low risk)
+    const highRisk = riskAddresses.filter(r => r.riskScore >= 70);
+    const mediumRisk = riskAddresses.filter(r => r.riskScore >= 40 && r.riskScore < 70);
+
+    const sections = [
+      paragraph("Consolidated Risk Address Report", { heading: HeadingLevel.HEADING_1 }),
+      paragraph(`Generated: ${new Date().toISOString()}`),
+      paragraph(`Total Risk Addresses: ${riskAddresses.length}`, { bold: true }),
+      paragraph(`High Risk (≥70): ${highRisk.length} | Medium Risk (40-69): ${mediumRisk.length}`),
+      
+      paragraph("High-Risk Addresses (≥70)", { heading: HeadingLevel.HEADING_2 }),
+      ...highRisk.slice(0, 50).map(r => [
+        paragraph(`Address: ${r.address}`, { bold: true }),
+        paragraph(`Risk Score: ${r.riskScore}/100`),
+        paragraph(`Status: ${r.status || "flagged"}`),
+        paragraph(`Summary: ${(r.summary || "No summary available").substring(0, 500)}`),
+        ...(r.workflowAnalysis?.dependencyMapping.clusterMatch ? [paragraph(`⚠️ Syndicate-7 Cluster Match (Hop: ${r.workflowAnalysis.dependencyMapping.hopDistance})`)] : []),
+        ...(r.highRiskTransactions && r.highRiskTransactions.length > 0 ? [paragraph(`High-Risk Transactions: ${r.highRiskTransactions.length}`)] : []),
+        paragraph(""),
+      ]).flat(),
+
+      paragraph("Medium-Risk Addresses (40-69)", { heading: HeadingLevel.HEADING_2 }),
+      ...mediumRisk.slice(0, 30).map(r => [
+        paragraph(`Address: ${r.address}`, { bold: true }),
+        paragraph(`Risk Score: ${r.riskScore}/100`),
+        paragraph(`Summary: ${(r.summary || "No summary available").substring(0, 300)}`),
+        paragraph(""),
+      ]).flat(),
+    ];
+
+    const doc = new Document({
+      sections: [{ children: sections }],
+    });
+
+    return Packer.toBuffer(doc);
+  } catch (err: any) {
+    console.error("[ConsolidatedReport] Failed to build consolidated report:", err?.message || err);
+    return null;
+  }
+}
+
+// Generate and save consolidated report every 2 hours
+function startConsolidatedReportScheduler() {
+  const intervalMs = 2 * 60 * 60 * 1000; // 2 hours
+
+  const generateReport = async () => {
+    try {
+      console.log("[ConsolidatedReport] Generating consolidated risk report...");
+      const buffer = await buildConsolidatedReport();
+      
+      if (buffer) {
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+        const reportPath = path.join(REPORTS_DIR, "consolidated", `risk-summary-${timestamp}.docx`);
+        await fsp.writeFile(reportPath, Buffer.from(buffer));
+        console.log(`[ConsolidatedReport] Saved consolidated report: ${reportPath}`);
+      }
+    } catch (err: any) {
+      console.error("[ConsolidatedReport] Scheduler error:", err?.message || err);
+    }
+  };
+
+  // Generate immediately on start
+  generateReport();
+  
+  // Schedule every 2 hours
+  setInterval(generateReport, intervalMs);
+  console.log(`[ConsolidatedReport] Scheduler started - will generate reports every 2 hours`);
+}
+
+async function startRealBlockPolling(agentInstance: AgentOrchestrator) {
+  if (realDataPollingStarted) return;
+  realDataPollingStarted = true;
+  console.log(`🔌 Real data polling enabled via ${ETH_RPC_URL} (mainnet blocks)`);
+
+  const client = createPublicClient({
+    chain: mainnet,
+    transport: http(ETH_RPC_URL, { timeout: 10_000 }),
+  });
+
+  let lastBlock = 0n;
+
+  const poll = async () => {
+    try {
+      const latest = await client.getBlockNumber();
+      if (lastBlock === 0n) {
+        lastBlock = latest;
+        return;
+      }
+      if (latest <= lastBlock) return;
+
+      for (let b = lastBlock + 1n; b <= latest; b++) {
+        const block = await client.getBlock({ blockNumber: b, includeTransactions: true }).catch(() => null);
+        if (!block || !block.transactions) continue;
+
+        for (const tx of block.transactions as any[]) {
+          const mappedTx = {
+            hash: tx.hash as `0x${string}`,
+            chain: "ethereum",
+            from: tx.from,
+            to: tx.to ?? null,
+            value: tx.value ?? 0n,
+            timestamp: Number(block.timestamp),
+          };
+
+          // Push into recent transactions feed
+          (agentInstance as any).recentTransactions = (agentInstance as any).recentTransactions || [];
+          (agentInstance as any).recentTransactions.push({
+            hash: mappedTx.hash,
+            chain: mappedTx.chain,
+            from: mappedTx.from,
+            to: mappedTx.to,
+            value: mappedTx.value,
+            blockNumber: b,
+            riskScore: 0,
+            suspicious: false,
+            timestamp: mappedTx.timestamp * 1000,
+          });
+          if ((agentInstance as any).recentTransactions.length > 100) {
+            (agentInstance as any).recentTransactions.shift();
+          }
+        }
+      }
+      lastBlock = latest;
+    } catch (err) {
+      console.warn("⚠️ Real data polling error:", err);
+    }
+  };
+
+  // Poll every 12 seconds (~block time); adjust as needed
+  poll();
+  setInterval(poll, 12_000);
+}
 
 // Helper to serialize BigInt for JSON
 function serializeBigInt(obj: any): any {
   if (obj === null || obj === undefined) return obj;
   if (typeof obj === 'bigint') return obj.toString();
+  // Don't try to convert decimal strings or numbers to BigInt
+  if (typeof obj === 'number') return obj;
+  if (typeof obj === 'string' && obj.includes('.')) {
+    // It's a decimal string, return as-is (don't try to convert to BigInt)
+    return obj;
+  }
   if (Array.isArray(obj)) return obj.map(serializeBigInt);
   if (typeof obj === 'object') {
     const result: any = {};
@@ -217,6 +1632,10 @@ async function initializeAgent() {
             (agent as any).recentTransactions.push({
               hash: testTx.hash,
               chain: testTx.chain,
+              from: testTx.from,
+              to: testTx.to,
+              value: testTx.value,
+              blockNumber: testTx.blockNumber,
               riskScore: analysis.riskScore,
               suspicious: analysis.suspicious,
               timestamp: testTx.timestamp * 1000,
@@ -234,87 +1653,100 @@ async function initializeAgent() {
       console.log("✅ Initial test data generated!");
     };
     
-    // Generate initial data immediately
-    generateContinuousTestData();
-    
-    // Generate new transactions every 3 seconds to simulate real-time activity
-    setInterval(async () => {
-      const testAnalyzer = new TransactionAnalyzer();
-      const chains = ["ethereum", "polygon", "bsc", "arbitrum", "optimism", "base"];
-      const randomChain = chains[Math.floor(Math.random() * chains.length)];
+    // Synthetic test data is disabled by default to ensure real data only.
+    if (USE_TEST_DATA) {
+      console.log("🧪 Test data generation enabled (USE_TEST_DATA=true)");
+      // Generate initial data immediately
+      generateContinuousTestData();
       
-      // Generate 3-5 transactions per interval - ensure we get high-risk transactions
-      const count = Math.floor(Math.random() * 3) + 3;
-      for (let i = 0; i < count; i++) {
-        // Generate more high-risk: 50% high, 30% medium, 20% low to ensure data appears
-        const riskRand = Math.random();
-        const riskLevel = riskRand < 0.5 ? "high" : riskRand < 0.8 ? "medium" : "low";
-        const testTx = generateTestTransaction(randomChain, riskLevel as "low" | "medium" | "high");
-        try {
-          const analysis = await testAnalyzer.analyzeTransaction(testTx);
-          
-          if (regulatoryMetrics) {
-            regulatoryMetrics.addTransaction(testTx, analysis);
-          }
-          if (dabaCompliance) {
-            dabaCompliance.addTransaction(testTx, analysis);
-          }
-          if (flowTracker && analysis.riskScore >= 70) {
-            flowTracker.trackTransaction(testTx, analysis);
-          }
-              if (walletTracker) {
-                walletTracker.trackTransaction(testTx, analysis);
-              }
-              if (marketManipulationDetector) {
-                // Use consistent token addresses for better pattern detection
-                const tokenAddress = testTx.to || `0x${randomChain.slice(0, 2).padEnd(40, '0')}` as `0x${string}`;
-                marketManipulationDetector.trackTransaction(testTx, tokenAddress as `0x${string}`);
-                
-                // Occasionally create pump patterns for detection
-                if (riskLevel === "high" && Math.random() > 0.8) {
-                  for (let pumpStep = 0; pumpStep < 3; pumpStep++) {
-                    const pumpTx = { ...testTx };
-                    pumpTx.value = BigInt(Number(testTx.value) * (1 + pumpStep * 0.3));
-                    pumpTx.timestamp = testTx.timestamp + pumpStep * 15;
-                    pumpTx.hash = `${testTx.hash.slice(0, -2)}${pumpStep}` as `0x${string}`;
-                    marketManipulationDetector.trackTransaction(pumpTx, tokenAddress as `0x${string}`);
+      // Generate new transactions every 5 seconds to simulate real-time activity
+      setInterval(async () => {
+        const testAnalyzer = new TransactionAnalyzer();
+        const chains = ["ethereum", "polygon", "bsc", "arbitrum", "optimism", "base"];
+        const randomChain = chains[Math.floor(Math.random() * chains.length)];
+        
+        // Generate 3-5 transactions per interval - ensure we get high-risk transactions
+        const count = Math.floor(Math.random() * 3) + 3;
+        for (let i = 0; i < count; i++) {
+          // Generate more high-risk: 50% high, 30% medium, 20% low to ensure data appears
+          const riskRand = Math.random();
+          const riskLevel = riskRand < 0.5 ? "high" : riskRand < 0.8 ? "medium" : "low";
+          const testTx = generateTestTransaction(randomChain, riskLevel as "low" | "medium" | "high");
+          try {
+            const analysis = await testAnalyzer.analyzeTransaction(testTx);
+            
+            if (regulatoryMetrics) {
+              regulatoryMetrics.addTransaction(testTx, analysis);
+            }
+            if (dabaCompliance) {
+              dabaCompliance.addTransaction(testTx, analysis);
+            }
+            if (flowTracker && analysis.riskScore >= 70) {
+              flowTracker.trackTransaction(testTx, analysis);
+            }
+                if (walletTracker) {
+                  walletTracker.trackTransaction(testTx, analysis);
+                }
+                if (marketManipulationDetector) {
+                  // Use consistent token addresses for better pattern detection
+                  const tokenAddress = testTx.to || `0x${randomChain.slice(0, 2).padEnd(40, '0')}` as `0x${string}`;
+                  marketManipulationDetector.trackTransaction(testTx, tokenAddress as `0x${string}`);
+                  
+                  // Occasionally create pump patterns for detection
+                  if (riskLevel === "high" && Math.random() > 0.8) {
+                    for (let pumpStep = 0; pumpStep < 3; pumpStep++) {
+                      const pumpTx = { ...testTx };
+                      pumpTx.value = BigInt(Number(testTx.value) * (1 + pumpStep * 0.3));
+                      pumpTx.timestamp = testTx.timestamp + pumpStep * 15;
+                      pumpTx.hash = `${testTx.hash.slice(0, -2)}${pumpStep}` as `0x${string}`;
+                      marketManipulationDetector.trackTransaction(pumpTx, tokenAddress as `0x${string}`);
+                    }
                   }
                 }
-              }
-              if (enhancedSuspiciousActivityTracker && analysis.suspicious) {
-                enhancedSuspiciousActivityTracker.addSuspiciousActivity(
-                  testTx.from,
-                  testTx.chain,
-                  analysis.category,
-                  analysis.riskScore,
-                  analysis.anomalyFlags,
-                  analysis.summary,
-                  testTx.hash,
-                  testTx.value,
-                  testTx.to ? [testTx.to] : []
-                );
-              }
-              if (openzeppelinMonitor) {
-                await openzeppelinMonitor.evaluateTransaction(testTx, analysis);
-              }
-          
-          (agent as any).recentTransactions = (agent as any).recentTransactions || [];
-          (agent as any).recentTransactions.push({
-            hash: testTx.hash,
-            chain: testTx.chain,
-            riskScore: analysis.riskScore,
-            suspicious: analysis.suspicious,
-            timestamp: testTx.timestamp * 1000,
-          });
-          
-          if ((agent as any).recentTransactions.length > 100) {
-            (agent as any).recentTransactions.shift();
+                if (enhancedSuspiciousActivityTracker && analysis.suspicious) {
+                  enhancedSuspiciousActivityTracker.addSuspiciousActivity(
+                    testTx.from,
+                    testTx.chain,
+                    analysis.category,
+                    analysis.riskScore,
+                    analysis.anomalyFlags,
+                    analysis.summary,
+                    testTx.hash,
+                    testTx.value,
+                    testTx.to ? [testTx.to] : []
+                  );
+                }
+                if (openzeppelinMonitor) {
+                  await openzeppelinMonitor.evaluateTransaction(testTx, analysis);
+                }
+            
+            (agent as any).recentTransactions = (agent as any).recentTransactions || [];
+            (agent as any).recentTransactions.push({
+              hash: testTx.hash,
+              chain: testTx.chain,
+              from: testTx.from,
+              to: testTx.to,
+              value: testTx.value,
+              blockNumber: testTx.blockNumber,
+              riskScore: analysis.riskScore,
+              suspicious: analysis.suspicious,
+              timestamp: testTx.timestamp * 1000,
+            });
+            
+            if ((agent as any).recentTransactions.length > 100) {
+              (agent as any).recentTransactions.shift();
+            }
+          } catch (err) {
+            // Silent fail for continuous generation
           }
-        } catch (err) {
-          // Silent fail for continuous generation
         }
-      }
-    }, 5000);
+      }, 5000);
+    } else {
+      console.log("🔎 Test data generation disabled. Dashboard will show only real data sources.");
+    }
+
+    // Start real block polling (Ethereum mainnet via ETH_RPC_URL or fallback)
+    startRealBlockPolling(agent);
   }
   return { agent, rl, regulatoryMetrics, dabaCompliance, openzeppelinMonitor, flowTracker, walletTracker, onChainSecurityChecker, marketManipulationDetector, enhancedSuspiciousActivityTracker, financialStatementAnalyzer };
 }
@@ -781,6 +2213,54 @@ app.get("/api/suspicious-activity/address/:address", async (req: Request, res: R
   }
 
   res.json(serializeBigInt(detail));
+});
+
+// Transaction investigation via RPC (ETH_RPC_URL by default, override with ?rpc=<url>&chain=<name>)
+app.get("/api/investigation/transaction/:hash", async (req: Request, res: Response) => {
+  const rpcUrl = (req.query.rpc as string) || ETH_RPC_URL;
+  const chainName = (req.query.chain as string) || "ethereum";
+  const hash = req.params.hash as `0x${string}`;
+
+  try {
+    const client = createPublicClient({
+      chain: mainnet,
+      transport: http(rpcUrl, { timeout: 12_000 }),
+    });
+
+    const tx = await client.getTransaction({ hash });
+    const receipt = await client.getTransactionReceipt({ hash }).catch(() => null);
+    const block = tx.blockNumber
+      ? await client.getBlock({ blockNumber: tx.blockNumber, includeTransactions: false }).catch(() => null)
+      : null;
+
+    const response = {
+      hash,
+      chain: chainName,
+      from: tx.from,
+      to: tx.to,
+      value: tx.value,
+      nonce: tx.nonce,
+      gas: tx.gas,
+      gasPrice: (tx as any).gasPrice ?? null,
+      input: tx.input,
+      blockNumber: tx.blockNumber,
+      blockTimestamp: block?.timestamp ?? null,
+      status: receipt?.status ?? null,
+      gasUsed: receipt?.gasUsed ?? null,
+      cumulativeGasUsed: receipt?.cumulativeGasUsed ?? null,
+      effectiveGasPrice: receipt?.effectiveGasPrice ?? null,
+      logs: receipt?.logs?.length ?? 0,
+    };
+
+    res.json(serializeBigInt(response));
+  } catch (error: any) {
+    res.status(404).json({
+      error: "Transaction not found or RPC failed",
+      chain: chainName,
+      rpc: rpcUrl,
+      details: error?.message || String(error),
+    });
+  }
 });
 
 // Etherscan API endpoints
@@ -1688,101 +3168,436 @@ app.get("/api/financial-statements/all", async (req: Request, res: Response) => 
 });
 
 // On-Chain Investigation Endpoint with Gemini AI Analysis
+const CHAINABUSE_API_KEY = process.env.CHAINABUSE_API_KEY || "";
+
+const KNOWN_INCIDENTS: Record<string, {
+  title: string;
+  summary: string;
+  severity: string;
+  related: string[];
+}> = {
+  "0x764c64b2a09b09acb100b80d8c505aa6a0302ef2": {
+    title: "Truebit Protocol: Purchase – January 2026 Exploit",
+    severity: "critical",
+    summary: "Overflow in getPurchasePrice (Solidity ^0.6.10) let attackers mint TRU at near-zero cost and drain ETH reserves. Truebit advised users not to interact.",
+    related: [
+      "Attacker Wallet (Exploiter 1): 0x6c8ec8f14be7c01672d31cfa5f2cefeab2562b50",
+      "Attack Contract: 0x1De399967B206e446B4E9AeEb3Cb0A0991bF11b8",
+      "Secondary Exploiter (Exploiter 2): 0xc0454E545a7A715c6D3627f77bEd376a05182FBc"
+    ]
+  },
+  "0x6c8ec8f14be7c01672d31cfa5f2cefeab2562b50": {
+    title: "Truebit Exploit – Attacker Wallet (Exploiter 1)",
+    severity: "critical",
+    summary: "Associated with Truebit January 2026 exploit; received funds via overflow/mint manipulation.",
+    related: [
+      "Exploited Contract: 0x764C64b2A09b09Acb100B80d8c505Aa6a0302EF2",
+      "Attack Contract: 0x1De399967B206e446B4E9AeEb3Cb0A0991bF11b8",
+      "Secondary Exploiter: 0xc0454E545a7A715c6D3627f77bEd376a05182FBc"
+    ]
+  },
+  "0x1de399967b206e446b4e9aeeb3cb0a0991bf11b8": {
+    title: "Truebit Exploit – Attack Contract",
+    severity: "critical",
+    summary: "Contract used to exploit Truebit purchase pricing bug (overflow) to mint TRU cheaply and drain ETH.",
+    related: [
+      "Exploited Contract: 0x764C64b2A09b09Acb100B80d8c505Aa6a0302EF2",
+      "Attacker Wallet: 0x6c8ec8f14be7c01672d31cfa5f2cefeab2562b50",
+      "Secondary Exploiter: 0xc0454E545a7A715c6D3627f77bEd376a05182FBc"
+    ]
+  },
+  "0xc0454e545a7a715c6d3627f77bed376a05182fbc": {
+    title: "Truebit Exploit – Secondary Exploiter",
+    severity: "high",
+    summary: "Secondary exploiter address tied to Truebit January 2026 incident.",
+    related: [
+      "Exploited Contract: 0x764C64b2A09b09Acb100B80d8c505Aa6a0302EF2",
+      "Attacker Wallet: 0x6c8ec8f14be7c01672d31cfa5f2cefeab2562b50",
+      "Attack Contract: 0x1De399967B206e446B4E9AeEb3Cb0A0991bF11b8"
+    ]
+  }
+};
+
+async function fetchChainabuseReputation(address: string) {
+  if (!CHAINABUSE_API_KEY) return [];
+  const results: Array<{ source: string; label: string; severity: string; note?: string }> = [];
+
+  const attemptFetch = async (url: string, headerName: string) => {
+    try {
+      const resp = await fetch(url, {
+        headers: {
+          "Accept": "application/json",
+          [headerName]: headerName === "Authorization" ? `Bearer ${CHAINABUSE_API_KEY}` : CHAINABUSE_API_KEY,
+        }
+      });
+      if (!resp.ok) throw new Error(`status ${resp.status}`);
+      const data = await resp.json();
+
+      // Heuristic: count reports if available
+      const reports = (data?.items || data?.results || data?.reports || []) as any[];
+      const count = Array.isArray(reports) ? reports.length : 0;
+      if (count > 0) {
+        results.push({
+          source: `chainabuse (${headerName})`,
+          label: "reported",
+          severity: count >= 3 ? "critical" : "high",
+          note: `Chainabuse reports: ${count}`
+        });
+      } else if (data?.status === "reported" || data?.risk === "high") {
+        results.push({
+          source: `chainabuse (${headerName})`,
+          label: data.status || "reported",
+          severity: "high",
+          note: data.message || "Chainabuse indicates risk"
+        });
+      }
+    } catch (err) {
+      console.warn("Chainabuse fetch failed", url, err);
+    }
+  };
+
+  await attemptFetch(`https://api.chainabuse.com/api/search?term=${address}`, "Authorization");
+  if (results.length === 0) {
+    await attemptFetch(`https://api.chainabuse.com/api/search?term=${address}`, "x-api-key");
+  }
+  if (results.length === 0) {
+    await attemptFetch(`https://api.chainabuse.com/api/addresses/${address}`, "Authorization");
+  }
+  return results;
+}
+
+function extractAddresses(text: string): string[] {
+  const matches = text.match(/0x[a-fA-F0-9]{40}/g);
+  return matches ? matches.map(a => a.toLowerCase()) : [];
+}
+
+async function getExternalReputation(address: string) {
+  const results: Array<{ source: string; label: string; severity: string; note?: string }> = [];
+  let incidentIntel: { title: string; severity: string; summary: string; related: string[] } | null = null;
+  try {
+    const compromised = (process.env.KNOWN_COMPROMISED_ADDRESSES || "")
+      .toLowerCase()
+      .split(",")
+      .map(a => a.trim())
+      .filter(Boolean);
+    if (compromised.includes(address.toLowerCase())) {
+      results.push({
+        source: "env:KNOWN_COMPROMISED_ADDRESSES",
+        label: "compromised",
+        severity: "critical",
+        note: "Address present in provided compromised list"
+      });
+    }
+  } catch {
+    // ignore
+  }
+
+  try {
+    const chainabuse = await fetchChainabuseReputation(address);
+    results.push(...chainabuse);
+  } catch {
+    // already logged inside
+  }
+
+  // Best-effort Etherscan page scrape for warning banners (no official API)
+  try {
+    const resp = await fetch(`https://etherscan.io/address/${address}`, {
+      headers: {
+        "Accept": "text/html,application/xhtml+xml,application/xml",
+        "User-Agent": "Mozilla/5.0 (compatible; RegulatorBot/1.0)"
+      }
+    });
+    if (resp.ok) {
+      const html = await resp.text();
+      const lowered = html.toLowerCase();
+      const warningMatch = /this address has been reported|reported as compromised|flagged/i.test(html);
+      const compromisedMatch = /compromised/i.test(html);
+      if (warningMatch || compromisedMatch) {
+        results.push({
+          source: "etherscan_html",
+          label: compromisedMatch ? "compromised" : "reported",
+          severity: "critical",
+          note: "Etherscan page shows warning banner / reported notice"
+        });
+      }
+    }
+  } catch (err) {
+    console.warn("Etherscan reputation fetch failed", err);
+  }
+
+  try {
+    const key = address.toLowerCase();
+    const directIncident = KNOWN_INCIDENTS[key];
+
+    // Also match incidents where this address is mentioned as related
+    const relatedIncident = Object.values(KNOWN_INCIDENTS).find(inc =>
+      inc.related
+        .flatMap(r => extractAddresses(r))
+        .some(rel => rel === key)
+    );
+
+    const incident = directIncident || relatedIncident;
+    if (incident) {
+      incidentIntel = {
+        title: incident.title,
+        severity: incident.severity,
+        summary: incident.summary,
+        related: incident.related
+      };
+      results.push({
+        source: "known_incidents",
+        label: incident.title,
+        severity: incident.severity,
+        note: incident.summary
+      });
+    }
+  } catch {
+    // ignore
+  }
+
+  return { results, incidentIntel };
+}
+
 app.get("/api/investigation/address/:address", async (req: Request, res: Response) => {
   try {
     const address = req.params.address;
+    
+    // Validate address format (like ethvalidate)
+    if (!address || !address.startsWith('0x') || address.length !== 42) {
+      return res.status(400).json({ error: 'Invalid address format. Must be a valid Ethereum address (0x followed by 40 hex characters)' });
+    }
+    
+    // Validate address using multiple RPC nodes (like ethvalidate approach)
+    const rpcEndpoints = [
+      'https://eth.llamarpc.com',
+      'https://rpc.ankr.com/eth',
+      'https://ethereum.publicnode.com',
+    ];
+    
+    let validatedBalance = '0';
+    try {
+      const validationPromises = rpcEndpoints.map(async (endpoint) => {
+        try {
+          const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              jsonrpc: '2.0',
+              method: 'eth_getBalance',
+              params: [address, 'latest'],
+              id: 1,
+            }),
+          });
+          const data = await response.json();
+          return data.result || null;
+        } catch {
+          return null;
+        }
+      });
+      
+      const balances = await Promise.allSettled(validationPromises);
+      const validBalances = balances
+        .filter((b): b is PromiseFulfilledResult<string> => b.status === 'fulfilled' && b.value !== null)
+        .map(b => b.value);
+      
+      if (validBalances.length > 0) {
+        validatedBalance = validBalances[0];
+      }
+    } catch (error) {
+      console.error('RPC validation error:', error);
+    }
+    
     const { agent } = await initializeAgent();
     
-    // Get address data from Etherscan/BlockExplorer
-    const [transactions, tokenTransfers, balance] = await Promise.all([
-      EtherscanAPI.getAddressTransactions(address, 0, 99999999, 1, 100, 'desc').catch(() => []),
-      EtherscanAPI.getTokenTransfers(address, 0, 99999999, 1, 50, 'desc').catch(() => []),
-      EtherscanAPI.getAccountBalance(address).catch(() => '0')
-    ]);
+    console.log(`🔍 Investigating address: ${address}`);
+    
+    // Get address data from Etherscan/BlockExplorer with proper error handling
+    let transactions: any[] = [];
+    let tokenTransfers: any[] = [];
+    let etherscanBalance = '0';
+    
+    try {
+      console.log('📡 Fetching from Etherscan API...');
+      const [txs, tokens, bal] = await Promise.all([
+        EtherscanAPI.getAddressTransactions(address, 0, 99999999, 1, 100, 'desc').catch((e: any) => {
+          console.error('❌ Etherscan transactions error:', e?.message || e);
+          return [];
+        }),
+        EtherscanAPI.getTokenTransfers(address, 0, 99999999, 1, 50, 'desc').catch((e: any) => {
+          console.error('❌ Etherscan token transfers error:', e?.message || e);
+          return [];
+        }),
+        EtherscanAPI.getAccountBalance(address).catch((e: any) => {
+          console.error('❌ Etherscan balance error:', e?.message || e);
+          return '0';
+        })
+      ]);
+      transactions = txs || [];
+      tokenTransfers = tokens || [];
+      etherscanBalance = bal || '0';
+      console.log(`✅ Etherscan: ${transactions.length} transactions, ${tokenTransfers.length} token transfers, balance: ${bal}`);
+    } catch (error: any) {
+      console.error('❌ Etherscan API failed:', error?.message || error);
+    }
+    
+    // Also get real-time transactions from agent
+    try {
+      const recentTxs = agent.getRecentTransactions(500);
+      const addressLower = address.toLowerCase();
+      const addressTxs = recentTxs.filter((tx: any) => {
+        const txFrom = (tx as any).from?.toLowerCase();
+        const txTo = (tx as any).to?.toLowerCase();
+        return tx.hash && (txFrom === addressLower || txTo === addressLower);
+      });
+      
+      console.log(`📊 Found ${addressTxs.length} real-time transactions for address`);
+      
+      // Merge with Etherscan data
+      if (addressTxs.length > 0) {
+        const existingHashes = new Set(transactions.map(t => t.hash));
+        let addedCount = 0;
+        addressTxs.forEach((tx: any) => {
+          if (!existingHashes.has(tx.hash)) {
+            transactions.push({
+              hash: tx.hash,
+              from: tx.from || '',
+              to: tx.to || '',
+              value: tx.value?.toString() || '0',
+              timeStamp: tx.timestamp ? Math.floor(tx.timestamp / 1000).toString() : Math.floor(Date.now() / 1000).toString(),
+              blockNumber: tx.blockNumber?.toString() || '0',
+              gasPrice: tx.gasPrice?.toString() || '0',
+              isError: '0',
+              chain: tx.chain || 'ethereum',
+            });
+            addedCount++;
+          }
+        });
+        console.log(`✅ Added ${addedCount} real-time transactions`);
+      }
+    } catch (error: any) {
+      console.error('❌ Error getting agent transactions:', error?.message || error);
+    }
+    
+    console.log(`📊 Final transaction count: ${transactions.length}`);
+    
+    // Use validated balance from RPC if available, otherwise use Etherscan
+    const balance = validatedBalance !== '0' ? validatedBalance : etherscanBalance;
     
     // Analyze suspicious patterns
     const analysis = transactions.length > 0 
       ? EtherscanAPI.analyzeSuspiciousPatterns(transactions)
       : null;
     
-    // Use Gemini AI for deep investigation analysis
+    // Use Gemini AI for deep investigation analysis (with timeout to prevent hanging)
     let aiAnalysis = null;
     if (process.env.GOOGLE_AI_API_KEY && transactions.length > 0) {
       try {
-        const { GoogleGenerativeAI } = await import("@google/generative-ai");
-        const googleAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY);
+        // Add timeout to AI analysis (max 10 seconds)
+        const aiAnalysisPromise = (async () => {
+          const { GoogleGenerativeAI } = await import("@google/generative-ai");
+          const apiKey = process.env.GOOGLE_AI_API_KEY;
+          if (!apiKey) throw new Error('GOOGLE_AI_API_KEY not set');
+          const googleAI = new GoogleGenerativeAI(apiKey);
+          
+          // Use ONLY gemini-2.5-flash as specified
+          const model = googleAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+          
+          // Prepare transaction summary for AI (reduced to 10 transactions for faster processing)
+          const txSummary = transactions.slice(0, 10).map(tx => ({
+            hash: tx.hash,
+            from: tx.from,
+            to: tx.to,
+            value: tx.value,
+            timestamp: tx.timeStamp
+          }));
+          
+          const prompt = `Analyze Ethereum address: ${address}
+Balance: ${balance} ETH | Transactions: ${transactions.length} | Tokens: ${tokenTransfers.length}
+
+Sample transactions:
+${JSON.stringify(txSummary, null, 2)}
+
+Patterns: ${analysis ? JSON.stringify(analysis, null, 2) : 'None'}
+
+Return JSON: {riskScore: 0-100, category: string, patterns: [], redFlags: [], recommendations: [], summary: string}`;
+          
+          const result = await model.generateContent(prompt);
+          const response = await result.response;
+          const text = response.text();
+          
+          const jsonMatch = text.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            return JSON.parse(jsonMatch[0]);
+          }
+          return {
+            summary: text,
+            riskScore: analysis?.riskScore || 0,
+            category: 'UNKNOWN',
+            patterns: [],
+            redFlags: [],
+            recommendations: []
+          };
+        })();
         
-        // Use ONLY gemini-2.5-flash as specified
-        const model = googleAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-        
-        // Prepare transaction summary for AI
-        const txSummary = transactions.slice(0, 20).map(tx => ({
+        // Add 10 second timeout
+        aiAnalysis = await Promise.race([
+          aiAnalysisPromise,
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('AI analysis timeout')), 10000)
+          )
+        ]).catch((error) => {
+          console.error('AI analysis timeout or error:', error);
+          return null; // Return null on timeout/error
+        });
+      } catch (aiError) {
+        console.error('Gemini AI analysis error:', aiError);
+        // Continue without AI analysis
+      }
+    }
+
+    // Fallback to OpenAI if Gemini not available/succeeded and API key present
+    if (!aiAnalysis && process.env.OPENAI_API_KEY && transactions.length > 0) {
+      try {
+        const { default: OpenAI } = await import("openai");
+        const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+        const txSummary = transactions.slice(0, 10).map(tx => ({
           hash: tx.hash,
           from: tx.from,
           to: tx.to,
           value: tx.value,
-          timestamp: tx.timeStamp,
-          gasPrice: tx.gasPrice
+          timestamp: tx.timeStamp
         }));
-        
-        const prompt = `You are an expert blockchain investigator. Analyze this Ethereum address and its transaction history.
 
-Address: ${address}
-Balance: ${balance} ETH
-Total Transactions: ${transactions.length}
-Token Transfers: ${tokenTransfers.length}
+        const prompt = `Analyze Ethereum address: ${address}
+Balance: ${balance} ETH | Transactions: ${transactions.length} | Tokens: ${tokenTransfers.length}
 
-Recent Transactions (sample):
+Sample transactions:
 ${JSON.stringify(txSummary, null, 2)}
 
-Suspicious Pattern Analysis:
-${analysis ? JSON.stringify(analysis, null, 2) : 'No patterns detected'}
+Patterns: ${analysis ? JSON.stringify(analysis, null, 2) : 'None'}
 
-Provide a comprehensive investigation report including:
-1. Address risk assessment (0-100 score)
-2. Behavioral patterns (e.g., exchange, mixer, scam, legitimate)
-3. Transaction flow analysis
-4. Potential red flags
-5. Recommendations for further investigation
+Return JSON: {riskScore: 0-100, category: string, patterns: [], redFlags: [], recommendations: [], summary: string}`;
 
-Format your response as JSON with: riskScore, category, patterns, redFlags (array), recommendations (array), summary.`;
-        
-        let result;
-        let response;
-        let text;
-        
-        try {
-          result = await model.generateContent(prompt);
-          response = await result.response;
-          text = response.text();
-        } catch (modelError: any) {
-          console.error("❌ gemini-2.5-flash failed:", modelError);
-          // Continue without AI analysis if model fails
-          text = null;
-        }
-        
-        if (!text) {
-          // Skip AI analysis if both models failed
-          console.log("⚠️ Skipping AI analysis due to model unavailability");
-        } else {
-          // Try to parse JSON from AI response
-          try {
-            const jsonMatch = text.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-              aiAnalysis = JSON.parse(jsonMatch[0]);
-            } else {
-              // Fallback: extract key information from text
-              aiAnalysis = {
-                summary: text,
-                riskScore: analysis?.riskScore || 0,
-                category: 'UNKNOWN',
-                patterns: [],
-                redFlags: [],
-                recommendations: []
-              };
-            }
-          } catch (parseError) {
-            // If JSON parsing fails, use text as summary
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 10000);
+
+        const completion = await client.chat.completions.create({
+          model: "gpt-4o-mini",
+          messages: [{ role: "user", content: prompt }],
+          temperature: 0.2
+        }, { signal: controller.signal }).catch((err: any) => {
+          console.error("OpenAI analysis error:", err);
+          return null;
+        });
+        clearTimeout(timeout);
+
+        if (completion?.choices?.[0]?.message?.content) {
+          const text = completion.choices[0].message.content;
+          const jsonMatch = text.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            aiAnalysis = JSON.parse(jsonMatch[0]);
+          } else {
             aiAnalysis = {
               summary: text,
               riskScore: analysis?.riskScore || 0,
@@ -1793,9 +3608,8 @@ Format your response as JSON with: riskScore, category, patterns, redFlags (arra
             };
           }
         }
-      } catch (aiError) {
-        console.error('Gemini AI analysis error:', aiError);
-        // Continue without AI analysis
+      } catch (openAiError) {
+        console.error("OpenAI analysis failed:", openAiError);
       }
     }
     
@@ -1810,13 +3624,80 @@ Format your response as JSON with: riskScore, category, patterns, redFlags (arra
       // Wallet profile not available
     }
     
+    // Ensure we return transactions even if empty
+    console.log(`📤 Returning investigation results: ${transactions.length} transactions, ${tokenTransfers.length} token transfers`);
+    
+    // Ensure arrays are never null/undefined
+    const transactionsArray = Array.isArray(transactions) ? transactions.slice(0, 50) : [];
+    const tokenTransfersArray = Array.isArray(tokenTransfers) ? tokenTransfers.slice(0, 30) : [];
+
+    // Lightweight rule-based summary when AI is unavailable (avoids silent empty UI)
+    const buildFallbackInvestigation = () => {
+      const txCount = transactionsArray.length;
+      const flagList = analysis?.flags || [];
+      const rapidTx = analysis?.rapidTransactions || 0;
+      const suspicious = analysis?.suspicious ? "suspicious patterns detected" : "no obvious suspicious patterns";
+      const totalEth = (() => {
+        try {
+          const sum = transactionsArray.reduce((acc, tx) => {
+            try {
+              const v = typeof tx.value === "string" ? BigInt(tx.value || "0") : BigInt(tx.value || 0);
+              return acc + v;
+            } catch {
+              return acc;
+            }
+          }, BigInt(0));
+          return Number(sum) / 1e18;
+        } catch {
+          return 0;
+        }
+      })();
+
+      const summaryLines = [
+        `Address ${address} with ${txCount} transactions reviewed; ${suspicious}.`,
+        flagList.length ? `Flags: ${flagList.join(", ")}` : "No flags raised by heuristic checks.",
+        `Approx total on-chain flow observed (sampled): ${totalEth.toFixed(4)} ETH.`,
+        rapidTx ? `Rapid transactions detected: ${rapidTx}.` : "No bursty activity detected.",
+        "External reputation not auto-fetched; verify Etherscan/Chainabuse labels."
+      ];
+
+      const redFlags = [
+        ...flagList,
+        "High balance without confirmed provenance (manual review required)."
+      ];
+
+      return {
+        summary: summaryLines.join(" "),
+        riskScore: Math.max(analysis?.riskScore ?? 0, 80),
+        category: "PATTERN_DETECTED",
+        patterns: redFlags,
+        redFlags,
+        recommendations: [
+          "Treat as high risk pending external reputation checks (Etherscan labels).",
+          "Trace inbound sources; verify legitimacy and ownership.",
+          "Check approvals/allowances; block outbound transfers if unsure.",
+          "Run taint/cluster analysis before interacting."
+        ],
+      };
+    };
+
+    const effectiveAiAnalysis = aiAnalysis || buildFallbackInvestigation();
+    const { results: externalReputation, incidentIntel } = await getExternalReputation(address);
+    if (externalReputation.length > 0 && effectiveAiAnalysis) {
+      effectiveAiAnalysis.redFlags = [...(effectiveAiAnalysis.redFlags || []), ...externalReputation.map(r => `${r.label} (${r.source})`)];
+      effectiveAiAnalysis.patterns = [...(effectiveAiAnalysis.patterns || []), ...externalReputation.map(r => r.label)];
+      effectiveAiAnalysis.riskScore = Math.max(effectiveAiAnalysis.riskScore || 0, 90);
+      effectiveAiAnalysis.category = "PATTERN_DETECTED";
+      effectiveAiAnalysis.summary = `${effectiveAiAnalysis.summary} External reputation: ${externalReputation.map(r => `${r.label} [${r.source}]`).join("; ")}.`;
+    }
+    
     res.json(serializeBigInt({
       address,
-      balance,
-      transactionCount: transactions.length,
-      tokenTransferCount: tokenTransfers.length,
-      transactions: transactions.slice(0, 20),
-      tokenTransfers: tokenTransfers.slice(0, 20),
+      balance: balance || '0',
+      transactionCount: transactionsArray.length,
+      tokenTransferCount: tokenTransfersArray.length,
+      transactions: transactionsArray,
+      tokenTransfers: tokenTransfersArray,
       analysis: analysis ? {
         suspicious: analysis.suspicious,
         flags: analysis.flags,
@@ -1825,7 +3706,9 @@ Format your response as JSON with: riskScore, category, patterns, redFlags (arra
         averageTransactionSize: analysis.averageTransactionSize.toString(),
         rapidTransactions: analysis.rapidTransactions
       } : null,
-      aiInvestigation: aiAnalysis,
+      aiInvestigation: effectiveAiAnalysis,
+      externalReputation,
+      incidentIntel,
       walletProfile: walletProfile ? {
         riskScore: walletProfile.riskScore,
         suspiciousFlags: walletProfile.suspiciousFlags,
@@ -1966,6 +3849,1075 @@ app.get("/api/crypto/news", async (req: Request, res: Response) => {
   }
 });
 
+// Address Validation Endpoint (using multiple RPC nodes like ethvalidate)
+app.get("/api/validate/address/:address", async (req: Request, res: Response) => {
+  try {
+    const address = req.params.address;
+    if (!address || !address.startsWith('0x') || address.length !== 42) {
+      return res.status(400).json({ error: 'Invalid address format' });
+    }
+
+    // Validate using multiple RPC endpoints (like ethvalidate)
+    const rpcEndpoints = [
+      'https://eth.llamarpc.com',
+      'https://rpc.ankr.com/eth',
+      'https://ethereum.publicnode.com',
+    ];
+
+    const validationResults = await Promise.allSettled(
+      rpcEndpoints.map(async (endpoint) => {
+        try {
+          const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              jsonrpc: '2.0',
+              method: 'eth_getBalance',
+              params: [address, 'latest'],
+              id: 1,
+            }),
+          });
+          const data = await response.json();
+          return {
+            endpoint,
+            valid: !data.error,
+            balance: data.result || '0x0',
+          };
+        } catch (error) {
+          return { endpoint, valid: false, error: String(error) };
+        }
+      })
+    );
+
+    const validations = validationResults.map((result, idx) => 
+      result.status === 'fulfilled' ? result.value : { endpoint: rpcEndpoints[idx], valid: false, error: 'Request failed' }
+    );
+
+    const isValid = validations.some(v => v.valid);
+    const consensusBalance = validations.find(v => v.valid && v.balance)?.balance || '0x0';
+
+    res.json({
+      address,
+      isValid,
+      balance: consensusBalance,
+      validations,
+      timestamp: Date.now(),
+    });
+  } catch (error) {
+    res.status(500).json({ error: String(error) });
+  }
+});
+
+// Taint Analysis Endpoint
+app.get("/api/investigation/taint/:address", async (req: Request, res: Response) => {
+  try {
+    const address = req.params.address;
+    const { agent } = await initializeAgent();
+    
+    const transactions = await EtherscanAPI.getAddressTransactions(address, 0, 99999999, 1, 100, 'desc').catch(() => []);
+    const tokenTransfers = await EtherscanAPI.getTokenTransfers(address, 0, 99999999, 1, 50, 'desc').catch(() => []);
+    
+    // Trace fund flows - identify source addresses
+    const sourceAddresses = new Set<string>();
+    const destinationAddresses = new Set<string>();
+    
+    transactions.forEach(tx => {
+      if (tx.from.toLowerCase() !== address.toLowerCase()) {
+        sourceAddresses.add(tx.from);
+      }
+      if (tx.to && tx.to.toLowerCase() !== address.toLowerCase()) {
+        destinationAddresses.add(tx.to);
+      }
+    });
+
+    // Analyze contamination paths
+    const contaminationPaths = Array.from(sourceAddresses).slice(0, 20).map(addr => ({
+      address: addr,
+      riskLevel: 'unknown',
+      connectionType: 'direct',
+    }));
+
+    res.json(serializeBigInt({
+      address,
+      sourceAddresses: Array.from(sourceAddresses).slice(0, 50),
+      destinationAddresses: Array.from(destinationAddresses).slice(0, 50),
+      contaminationPaths,
+      totalSources: sourceAddresses.size,
+      totalDestinations: destinationAddresses.size,
+      timestamp: Date.now(),
+    }));
+  } catch (error) {
+    res.status(500).json({ error: String(error) });
+  }
+});
+
+// Address Clustering Endpoint
+app.get("/api/investigation/cluster/:address", async (req: Request, res: Response) => {
+  try {
+    const address = req.params.address;
+    const transactions = await EtherscanAPI.getAddressTransactions(address, 0, 99999999, 1, 100, 'desc').catch(() => []);
+    
+    // Identify related addresses using heuristics
+    const relatedAddresses = new Map<string, { count: number; type: string }>();
+    
+    transactions.forEach(tx => {
+      // Shared inputs (addresses that sent to both this address and others)
+      if (tx.from) {
+        const count = relatedAddresses.get(tx.from)?.count || 0;
+        relatedAddresses.set(tx.from, { count: count + 1, type: 'shared_input' });
+      }
+      // Change addresses (small value outputs)
+      if (tx.to && BigInt(tx.value) < BigInt('100000000000000000')) {
+        const count = relatedAddresses.get(tx.to)?.count || 0;
+        relatedAddresses.set(tx.to, { count: count + 1, type: 'change_address' });
+      }
+    });
+
+    const clusters = Array.from(relatedAddresses.entries())
+      .filter(([_, data]) => data.count > 1)
+      .slice(0, 30)
+      .map(([addr, data]) => ({
+        address: addr,
+        connectionStrength: data.count,
+        clusterType: data.type,
+      }));
+
+    res.json(serializeBigInt({
+      address,
+      clusters,
+      clusterCount: clusters.length,
+      timestamp: Date.now(),
+    }));
+  } catch (error) {
+    res.status(500).json({ error: String(error) });
+  }
+});
+
+// Flow Visualization Endpoint
+app.get("/api/investigation/flow/:address", async (req: Request, res: Response) => {
+  try {
+    const address = req.params.address.toLowerCase();
+    console.log(`[Flow] Processing flow visualization for address: ${address}`);
+    const transactions = await EtherscanAPI.getAddressTransactions(address, 0, 99999999, 1, 100, 'desc').catch(() => []);
+    
+    // Build flow graph with detailed node information
+    const nodeMap = new Map<string, {
+      address: string;
+      balance: string;
+      incomingValue: bigint;
+      outgoingValue: bigint;
+      incomingCount: number;
+      outgoingCount: number;
+      type: 'target' | 'source' | 'destination';
+    }>();
+    
+    // Initialize target node
+    let targetBalance = '0';
+    try {
+      const balanceResult = await EtherscanAPI.getAccountBalance(address);
+      // Handle both hex (0x...) and decimal strings
+      if (typeof balanceResult === 'string') {
+        targetBalance = balanceResult.startsWith('0x') ? balanceResult : balanceResult;
+      } else {
+        targetBalance = String(balanceResult || '0');
+      }
+    } catch {
+      targetBalance = '0';
+    }
+    
+    nodeMap.set(address, {
+      address,
+      balance: targetBalance,
+      incomingValue: BigInt(0),
+      outgoingValue: BigInt(0),
+      incomingCount: 0,
+      outgoingCount: 0,
+      type: 'target',
+    });
+    
+    const edges: Array<{ 
+      from: string; 
+      to: string; 
+      value: string; 
+      timestamp: string;
+      hash: string;
+    }> = [];
+    
+    // Process transactions to build graph
+    transactions.slice(0, 100).forEach(tx => {
+      const from = (tx.from || '').toLowerCase();
+      const to = (tx.to || '').toLowerCase();
+      
+      // Safely parse transaction value to BigInt
+      let value = BigInt(0);
+      try {
+        const valueStr = String(tx.value || '0').trim();
+        if (valueStr && valueStr !== 'null' && valueStr !== 'undefined') {
+          // Handle hex strings
+          if (valueStr.startsWith('0x')) {
+            value = BigInt(valueStr);
+          } else {
+            // Handle decimal strings
+            value = BigInt(valueStr);
+          }
+        }
+      } catch (e) {
+        console.error('Error parsing transaction value:', tx.value, e);
+        value = BigInt(0);
+      }
+      
+      if (from && to) {
+        // Add edge
+        edges.push({
+          from,
+          to,
+          value: tx.value,
+          timestamp: tx.timeStamp,
+          hash: tx.hash,
+        });
+        
+        // Update node data
+        if (from === address) {
+          // Outgoing transaction from target
+          const targetNode = nodeMap.get(address)!;
+          targetNode.outgoingValue += value;
+          targetNode.outgoingCount++;
+          
+          if (!nodeMap.has(to)) {
+            nodeMap.set(to, {
+              address: to,
+              balance: '0',
+              incomingValue: BigInt(0),
+              outgoingValue: BigInt(0),
+              incomingCount: 0,
+              outgoingCount: 0,
+              type: 'destination',
+            });
+          }
+          const destNode = nodeMap.get(to)!;
+          destNode.incomingValue += value;
+          destNode.incomingCount++;
+        } else if (to === address) {
+          // Incoming transaction to target
+          const targetNode = nodeMap.get(address)!;
+          targetNode.incomingValue += value;
+          targetNode.incomingCount++;
+          
+          if (!nodeMap.has(from)) {
+            nodeMap.set(from, {
+              address: from,
+              balance: '0',
+              incomingValue: BigInt(0),
+              outgoingValue: BigInt(0),
+              incomingCount: 0,
+              outgoingCount: 0,
+              type: 'source',
+            });
+          }
+          const sourceNode = nodeMap.get(from)!;
+          sourceNode.outgoingValue += value;
+          sourceNode.outgoingCount++;
+        } else {
+          // Transaction between two other addresses (not involving target)
+          // Still add them as nodes but don't classify as source/destination
+          if (!nodeMap.has(from)) {
+            nodeMap.set(from, {
+              address: from,
+              balance: '0',
+              incomingValue: BigInt(0),
+              outgoingValue: BigInt(0),
+              incomingCount: 0,
+              outgoingCount: 0,
+              type: 'source', // Default to source if not connected to target
+            });
+          }
+          if (!nodeMap.has(to)) {
+            nodeMap.set(to, {
+              address: to,
+              balance: '0',
+              incomingValue: BigInt(0),
+              outgoingValue: BigInt(0),
+              incomingCount: 0,
+              outgoingCount: 0,
+              type: 'destination', // Default to destination if not connected to target
+            });
+          }
+        }
+      }
+    });
+    
+    // Get balances for all nodes (in parallel, but limit to avoid rate limits)
+    const nodeAddresses = Array.from(nodeMap.keys()).slice(0, 50);
+    await Promise.allSettled(
+      nodeAddresses.map(async (addr) => {
+        if (addr !== address) {
+          try {
+            const balanceResult = await EtherscanAPI.getAccountBalance(addr);
+            const node = nodeMap.get(addr);
+            if (node) {
+              // Handle both hex (0x...) and decimal strings
+              if (typeof balanceResult === 'string') {
+                node.balance = balanceResult;
+              } else {
+                node.balance = String(balanceResult || '0');
+              }
+            }
+          } catch {
+            // Ignore balance fetch errors
+          }
+        }
+      })
+    );
+    
+    // Convert nodes to array format
+    const nodes = Array.from(nodeMap.values()).map(node => {
+      // getAccountBalance returns ETH as decimal string, convert to wei for storage
+      let balanceWei = BigInt(0);
+      try {
+        const balanceStr = String(node.balance || '0').trim();
+        if (!balanceStr || balanceStr === 'null' || balanceStr === 'undefined') {
+          balanceWei = BigInt(0);
+        } else if (balanceStr.startsWith('0x')) {
+          // Hex string (from RPC)
+          balanceWei = BigInt(balanceStr);
+        } else if (balanceStr.includes('.')) {
+          // Decimal ETH value, convert to wei
+          const ethValue = parseFloat(balanceStr) || 0;
+          balanceWei = BigInt(Math.floor(ethValue * 1000000000000000000));
+        } else {
+          // Try to parse as wei (large number)
+          balanceWei = BigInt(balanceStr);
+        }
+      } catch (e) {
+        console.error('Error parsing balance for node:', node.address, node.balance, e);
+        balanceWei = BigInt(0);
+      }
+      
+      const weiPerEth = BigInt('1000000000000000000');
+      
+      return {
+        id: node.address,
+        address: node.address,
+        balance: balanceWei.toString(),
+        incomingValue: (typeof node.incomingValue === 'bigint' ? node.incomingValue : BigInt(String(node.incomingValue || 0))).toString(),
+        outgoingValue: (typeof node.outgoingValue === 'bigint' ? node.outgoingValue : BigInt(String(node.outgoingValue || 0))).toString(),
+        incomingCount: node.incomingCount,
+        outgoingCount: node.outgoingCount,
+        type: node.type,
+        // Calculate display value (balance or total flow) in ETH
+        displayValue: (() => {
+          try {
+            if (node.type === 'target') {
+              return (balanceWei / weiPerEth).toString();
+            } else if (node.type === 'source') {
+              const outgoing = typeof node.outgoingValue === 'bigint' ? node.outgoingValue : BigInt(String(node.outgoingValue || 0));
+              return (outgoing / weiPerEth).toString();
+            } else {
+              const incoming = typeof node.incomingValue === 'bigint' ? node.incomingValue : BigInt(String(node.incomingValue || 0));
+              return (incoming / weiPerEth).toString();
+            }
+          } catch (e) {
+            console.error('Error calculating displayValue for node:', node.address, node.type, e);
+            return '0';
+          }
+        })(),
+      };
+    });
+
+    console.log(`[Flow] Generated ${nodes.length} nodes and ${edges.length} edges`);
+    
+    const responseData = {
+      address,
+      nodes,
+      edges: edges.slice(0, 100),
+      nodeCount: nodes.length,
+      edgeCount: edges.length,
+      timestamp: Date.now(),
+    };
+    
+    console.log(`[Flow] Serializing response data...`);
+    const serialized = serializeBigInt(responseData);
+    console.log(`[Flow] Sending response with ${serialized.nodes.length} nodes`);
+    
+    res.json(serialized);
+  } catch (error: any) {
+    console.error('[Flow] Error in flow visualization:', error);
+    console.error('[Flow] Error stack:', error.stack);
+    res.status(500).json({ 
+      error: String(error?.message || error),
+      details: error?.stack 
+    });
+  }
+});
+
+// Cross-Chain Analysis Endpoint
+app.get("/api/investigation/crosschain/:address", async (req: Request, res: Response) => {
+  try {
+    const address = req.params.address;
+    const { agent } = await initializeAgent();
+
+    if (!address || !address.startsWith("0x") || address.length !== 42) {
+      return res.status(400).json({ error: "Invalid address format. Use a 0x-prefixed 40-hex address." });
+    }
+
+    const chainData = await buildCrossChainSnapshot(address, agent);
+
+    res.json(serializeBigInt({
+      address,
+      chains: chainData,
+      activeChains: chainData.filter(c => c.hasActivity).length,
+      timestamp: Date.now(),
+    }));
+  } catch (error: any) {
+    res.status(500).json({ error: String(error?.message || error) });
+  }
+});
+
+// Market Manipulation Investigation + Report (docx) Endpoint
+app.get("/api/investigation/marketmanipulation/:address", async (req: Request, res: Response) => {
+  try {
+    const address = req.params.address;
+    const token = (req.query.token as string | undefined) || undefined;
+    const format = (req.query.format as string | undefined)?.toLowerCase();
+    const download = req.query.download === "true" || format === "docx" || format === "doc";
+
+    if (!address || !address.startsWith("0x") || address.length !== 42) {
+      return res.status(400).json({ error: "Invalid address format. Use a 0x-prefixed 40-hex address." });
+    }
+
+    const { agent } = await initializeAgent();
+    const chainData = await buildCrossChainSnapshot(address, agent);
+    const chainActivity = safeSerialize(chainData);
+
+    // Run Master Investigative Blueprint 5-Step Workflow
+    const workflowAnalysis = await runMasterWorkflow(address, agent);
+
+    // Gather market manipulation alerts
+    const alerts: any[] = [];
+    if (marketManipulationDetector) {
+      alerts.push(...marketManipulationDetector.getAddressAlerts(address as Address, 100));
+      if (token) {
+        alerts.push(...marketManipulationDetector.getTokenAlerts(token as Address, 100));
+      }
+    }
+
+    const safeAlerts = safeSerialize(alerts);
+
+    // Analyze high-risk transactions
+    console.log(`[MarketManipulation] Analyzing high-risk transactions for ${address}...`);
+    const highRiskTransactions = await analyzeHighRiskTransactions(address, 50);
+    console.log(`[MarketManipulation] Found ${highRiskTransactions?.length || 0} high-risk transactions`);
+
+    // Combine workflow baseRisk with alert risks and high-risk transaction risks
+    const maxAlertRisk = alerts.length ? Math.max(...alerts.map((a) => Number(a.riskScore || 0))) : 20;
+    const maxTxRisk = highRiskTransactions && highRiskTransactions.length > 0
+      ? Math.max(...highRiskTransactions.map((tx) => tx.riskScore))
+      : 20;
+    const combinedRisk = Math.max(workflowAnalysis.triage.baseRisk, maxAlertRisk, maxTxRisk);
+    const riskScore = Math.min(100, Math.max(10, combinedRisk));
+    const status: "flagged" | "cleared" = (safeAlerts.length === 0 && riskScore <= 20 && !workflowAnalysis.sarReady && (!highRiskTransactions || highRiskTransactions.length === 0)) ? "cleared" : "flagged";
+
+    const aiNarrative = await generateAiNarrative({
+      address,
+      token,
+      chainActivity: chainActivity,
+      alerts: safeAlerts,
+    });
+
+    const record: InvestigationRecord = {
+      id: `${Date.now()}-${address}`,
+      address,
+      token,
+      riskScore,
+      summary: aiNarrative,
+      alerts: safeAlerts,
+      chainActivity,
+      timestamp: Date.now(),
+      status,
+      workflowAnalysis,
+      highRiskTransactions: highRiskTransactions || undefined,
+    };
+
+    await saveInvestigationRecord(record);
+
+    // Auto-save detailed DOCX report to organized reports folder (flagged/cleared + risk level)
+    await ensureReportsDir();
+    const reportDir = getReportDirectory(record);
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+    const reportFilename = `investigation-${address.slice(2, 10)}-${timestamp}.docx`;
+    const reportPath = path.join(reportDir, reportFilename);
+    
+    try {
+      const buffer = await buildDocxReport(record, aiNarrative);
+      await fsp.writeFile(reportPath, Buffer.from(buffer));
+      console.log(`[Investigation] Detailed report saved to organized folder: ${reportPath}`);
+    } catch (err: any) {
+      console.warn(`[Investigation] Failed to save report: ${err?.message || err}`);
+    }
+
+    // Return docx if requested
+    if (download) {
+      const buffer = await buildDocxReport(record, aiNarrative);
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+      res.setHeader("Content-Disposition", `attachment; filename=\"investigation-${address}.docx\"`);
+      return res.send(Buffer.from(buffer));
+    }
+
+    res.json(serializeBigInt({ ...record, aiNarrative }));
+  } catch (error: any) {
+    console.error("[MarketManipulation] error:", error?.message || error);
+    res.status(500).json({ error: String(error?.message || error) });
+  }
+});
+
+// Investigation history & export
+app.get("/api/investigation/history", async (req: Request, res: Response) => {
+  try {
+    const format = (req.query.format as string | undefined)?.toLowerCase();
+    const history = await loadInvestigationHistory();
+
+    if (format === "csv") {
+      const csv = investigationsToCsv(history);
+      res.setHeader("Content-Type", "text/csv");
+      res.setHeader("Content-Disposition", "attachment; filename=\"investigation-history.csv\"");
+      return res.send(csv);
+    }
+
+    res.json(serializeBigInt({ count: history.length, items: history }));
+  } catch (error: any) {
+    res.status(500).json({ error: String(error?.message || error) });
+  }
+});
+
+// SAR-ready investigation (real-time) endpoint
+app.get("/api/investigation/sar/:address", async (req: Request, res: Response) => {
+  try {
+    const address = req.params.address;
+    const token = (req.query.token as string | undefined) || undefined;
+    const download = req.query.download === "true";
+
+    if (!address || !address.startsWith("0x") || address.length !== 42) {
+      return res.status(400).json({ error: "Invalid address format. Use a 0x-prefixed 40-hex address." });
+    }
+
+    const { agent } = await initializeAgent();
+    const chainData = await buildCrossChainSnapshot(address, agent);
+    const chainActivity = safeSerialize(chainData);
+
+    // Run Master Investigative Blueprint 5-Step Workflow
+    const workflowAnalysis = await runMasterWorkflow(address, agent);
+
+    // Gather market manipulation alerts
+    const alerts: any[] = [];
+    if (marketManipulationDetector) {
+      alerts.push(...marketManipulationDetector.getAddressAlerts(address as Address, 100));
+      if (token) {
+        alerts.push(...marketManipulationDetector.getTokenAlerts(token as Address, 100));
+      }
+    }
+    const safeAlerts = safeSerialize(alerts);
+
+    // Analyze high-risk transactions
+    console.log(`[SAR] Analyzing high-risk transactions for ${address}...`);
+    const highRiskTransactions = await analyzeHighRiskTransactions(address, 50);
+    console.log(`[SAR] Found ${highRiskTransactions?.length || 0} high-risk transactions`);
+
+    // Combine workflow baseRisk with alert risks and high-risk transaction risks
+    const maxAlertRisk = alerts.length ? Math.max(...alerts.map((a) => Number(a.riskScore || 0))) : 20;
+    const maxTxRisk = highRiskTransactions && highRiskTransactions.length > 0
+      ? Math.max(...highRiskTransactions.map((tx) => tx.riskScore))
+      : 20;
+    const combinedRisk = Math.max(workflowAnalysis.triage.baseRisk, maxAlertRisk, maxTxRisk);
+    const riskScore = Math.min(100, Math.max(10, combinedRisk));
+    const status: "flagged" | "cleared" = (safeAlerts.length === 0 && riskScore <= 20 && !workflowAnalysis.sarReady && (!highRiskTransactions || highRiskTransactions.length === 0)) ? "cleared" : "flagged";
+
+    const aiNarrative = await generateAiNarrative({
+      address,
+      token,
+      chainActivity: chainActivity,
+      alerts: safeAlerts,
+    });
+
+    const recordBase: InvestigationRecord = {
+      id: `${Date.now()}-${address}`,
+      address,
+      token,
+      riskScore,
+      summary: aiNarrative,
+      alerts: safeAlerts,
+      chainActivity,
+      timestamp: Date.now(),
+      status,
+      workflowAnalysis,
+      highRiskTransactions: highRiskTransactions || undefined,
+    };
+
+    const sarText = await generateSarSummary(recordBase, aiNarrative);
+
+    const record: InvestigationRecord = {
+      ...recordBase,
+      sarText,
+    };
+
+    await saveInvestigationRecord(record);
+
+    // Always persist a SAR docx to organized reports folder (flagged/cleared + risk level)
+    try {
+      await ensureReportsDir();
+      const reportDir = getReportDirectory(record);
+      const autoPath = path.join(reportDir, `sar-${address.slice(2, 10)}-${Date.now()}.docx`);
+      const autoBuffer = await buildDocxReport(record, aiNarrative, sarText);
+      await fsp.writeFile(autoPath, Buffer.from(autoBuffer));
+      console.log(`[SAR] Saved auto report to organized folder: ${autoPath}`);
+    } catch (err) {
+      console.warn("[SAR] Failed to auto-save report:", err);
+    }
+
+    if (download) {
+      const buffer = await buildDocxReport(record, aiNarrative, sarText);
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+      res.setHeader("Content-Disposition", `attachment; filename=\"sar-${address}.docx\"`);
+      return res.send(Buffer.from(buffer));
+    }
+
+    res.json(serializeBigInt({ ...record, aiNarrative, sarText }));
+  } catch (error: any) {
+    res.status(500).json({ error: String(error?.message || error) });
+  }
+});
+
+// MEV Detection Endpoint
+app.get("/api/investigation/mev/:address", async (req: Request, res: Response) => {
+  try {
+    const address = req.params.address;
+    const transactions = await EtherscanAPI.getAddressTransactions(address, 0, 99999999, 1, 100, 'desc').catch(() => []);
+    
+    // Detect MEV patterns
+    const mevPatterns: Array<{ type: string; txHash: string; description: string }> = [];
+    
+    transactions.forEach((tx, idx) => {
+      const gasPrice = BigInt(tx.gasPrice || '0');
+      const highGasPrice = gasPrice > BigInt('100000000000'); // > 100 gwei
+      
+      // Check for front-running patterns (high gas price, same block)
+      if (highGasPrice && idx < transactions.length - 1) {
+        const nextTx = transactions[idx + 1];
+        if (nextTx.blockNumber === tx.blockNumber && BigInt(nextTx.gasPrice) < gasPrice) {
+          mevPatterns.push({
+            type: 'potential_frontrun',
+            txHash: tx.hash,
+            description: `High gas price transaction in same block as lower gas price transaction`,
+          });
+        }
+      }
+      
+      // Check for sandwich patterns (tx between two related txs)
+      if (idx > 0 && idx < transactions.length - 1) {
+        const prevTx = transactions[idx - 1];
+        const nextTx = transactions[idx + 1];
+        if (prevTx.to === nextTx.from && tx.from === address) {
+          mevPatterns.push({
+            type: 'potential_sandwich',
+            txHash: tx.hash,
+            description: `Transaction between two related transactions`,
+          });
+        }
+      }
+    });
+
+    res.json(serializeBigInt({
+      address,
+      mevDetected: mevPatterns.length > 0,
+      patterns: mevPatterns.slice(0, 20),
+      patternCount: mevPatterns.length,
+      timestamp: Date.now(),
+    }));
+  } catch (error) {
+    res.status(500).json({ error: String(error) });
+  }
+});
+
+// Risk Profiling Endpoint
+app.get("/api/investigation/risk/:address", async (req: Request, res: Response) => {
+  try {
+    const address = req.params.address;
+    const [transactions, tokenTransfers, balanceResult] = await Promise.all([
+      EtherscanAPI.getAddressTransactions(address, 0, 99999999, 1, 100, 'desc').catch(() => []),
+      EtherscanAPI.getTokenTransfers(address, 0, 99999999, 1, 50, 'desc').catch(() => []),
+      EtherscanAPI.getAccountBalance(address).catch(() => '0'),
+    ]);
+    
+    // Handle balance - getAccountBalance returns ETH as decimal string
+    // Convert to wei for consistency, but keep ETH string for display
+    let balanceWei = '0';
+    let balanceETH = '0';
+    try {
+      const balanceStr = String(balanceResult || '0').trim();
+      console.log(`[Risk] Balance string received: ${balanceStr}`);
+      
+      if (balanceStr && balanceStr !== 'null' && balanceStr !== 'undefined' && balanceStr !== '') {
+        balanceETH = balanceStr; // Keep original ETH value for display
+        
+        if (balanceStr.includes('.')) {
+          // It's ETH as decimal, convert to wei using string manipulation to avoid precision loss
+          const parts = balanceStr.split('.');
+          const integerPart = parts[0] || '0';
+          let decimalPart = parts[1] || '';
+          // Pad decimal part to exactly 18 digits
+          decimalPart = decimalPart.padEnd(18, '0').slice(0, 18);
+          
+          // Combine: integer + decimal (no decimal point)
+          const weiStr = integerPart + decimalPart;
+          console.log(`[Risk] Converting ETH ${balanceStr} to wei string: ${weiStr} (length: ${weiStr.length})`);
+          
+          try {
+            // Ensure weiStr is a valid integer string (no decimal point, no letters)
+            if (!/^\d+$/.test(weiStr)) {
+              throw new Error(`Invalid wei string: ${weiStr}`);
+            }
+            balanceWei = BigInt(weiStr).toString();
+            console.log(`[Risk] Successfully converted to wei: ${balanceWei}`);
+          } catch (e) {
+            console.error('[Risk] Error converting with BigInt, using fallback:', e);
+            // Fallback: use multiplication with proper handling
+            const ethValue = parseFloat(balanceStr) || 0;
+            const integer = Math.floor(ethValue);
+            const fractional = ethValue - integer;
+            const integerWei = BigInt(integer) * BigInt('1000000000000000000');
+            // Use string-based fractional conversion to avoid precision loss
+            const fractionalStr = fractional.toFixed(18).split('.')[1] || '0';
+            const fractionalWei = BigInt(fractionalStr.padEnd(18, '0').slice(0, 18));
+            balanceWei = (integerWei + fractionalWei).toString();
+            console.log(`[Risk] Fallback conversion result: ${balanceWei}`);
+          }
+        } else if (balanceStr.startsWith('0x')) {
+          // Hex string (from RPC)
+          balanceWei = BigInt(balanceStr).toString();
+          const wei = BigInt(balanceStr);
+          balanceETH = (Number(wei) / 1e18).toString();
+        } else {
+          // Check if it's a large number (likely wei) or small number (likely ETH)
+          const numValue = parseFloat(balanceStr);
+          if (numValue > 1e15) {
+            // Likely wei
+            try {
+              balanceWei = BigInt(balanceStr).toString();
+              balanceETH = (numValue / 1e18).toString();
+            } catch {
+              balanceWei = '0';
+              balanceETH = balanceStr;
+            }
+          } else {
+            // Likely ETH, convert to wei
+            const integer = Math.floor(numValue);
+            const fractional = numValue - integer;
+            const integerWei = BigInt(integer) * BigInt('1000000000000000000');
+            const fractionalWei = BigInt(Math.floor(fractional * 1000000000000000000));
+            balanceWei = (integerWei + fractionalWei).toString();
+            balanceETH = balanceStr;
+          }
+        }
+      }
+    } catch (e) {
+      console.error('[Risk] Error parsing balance:', e);
+      balanceWei = '0';
+      balanceETH = '0';
+    }
+    
+    const analysis = transactions.length > 0 
+      ? EtherscanAPI.analyzeSuspiciousPatterns(transactions)
+      : null;
+    
+    // Build comprehensive risk profile
+    const riskFactors: string[] = [];
+    let riskScore = analysis?.riskScore || 0;
+    
+    if (analysis && (analysis.rapidTransactions || 0) > 10) riskFactors.push('High transaction velocity');
+    if (analysis?.flags?.includes('LARGE_VALUE')) riskFactors.push('Large value transactions');
+    if (analysis?.flags?.includes('FAILED_TRANSACTIONS')) riskFactors.push('Failed transactions');
+    
+    // Safely convert totalVolume and avgTxSize to strings
+    let totalVolumeStr = '0';
+    let avgTxSizeStr = '0';
+    
+    try {
+      if (analysis?.totalVolume !== undefined && analysis?.totalVolume !== null) {
+        if (typeof analysis.totalVolume === 'bigint') {
+          totalVolumeStr = analysis.totalVolume.toString();
+        } else if (typeof analysis.totalVolume === 'number') {
+          // It's a number - check if it's a decimal
+          if (Number.isInteger(analysis.totalVolume)) {
+            totalVolumeStr = BigInt(analysis.totalVolume).toString();
+          } else {
+            // Decimal number - floor it first
+            totalVolumeStr = BigInt(Math.floor(analysis.totalVolume)).toString();
+          }
+        } else {
+          // It's a string or something else
+          const volStr = String(analysis.totalVolume).trim();
+          if (volStr.includes('.')) {
+            // Decimal string - parse and floor
+            const numValue = parseFloat(volStr);
+            if (!isNaN(numValue)) {
+              totalVolumeStr = BigInt(Math.floor(numValue)).toString();
+            } else {
+              totalVolumeStr = '0';
+            }
+          } else {
+            // Integer string - safe to convert
+            try {
+              totalVolumeStr = BigInt(volStr).toString();
+            } catch {
+              totalVolumeStr = '0';
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.error('[Risk] Error converting totalVolume:', e, 'Type:', typeof analysis?.totalVolume, 'Value:', analysis?.totalVolume);
+      totalVolumeStr = '0';
+    }
+    
+    try {
+      if (analysis?.averageTransactionSize !== undefined && analysis?.averageTransactionSize !== null) {
+        if (typeof analysis.averageTransactionSize === 'bigint') {
+          avgTxSizeStr = analysis.averageTransactionSize.toString();
+        } else if (typeof analysis.averageTransactionSize === 'number') {
+          // It's a number - check if it's a decimal
+          if (Number.isInteger(analysis.averageTransactionSize)) {
+            avgTxSizeStr = BigInt(analysis.averageTransactionSize).toString();
+          } else {
+            // Decimal number - floor it first
+            avgTxSizeStr = BigInt(Math.floor(analysis.averageTransactionSize)).toString();
+          }
+        } else {
+          // It's a string or something else
+          const sizeStr = String(analysis.averageTransactionSize).trim();
+          if (sizeStr.includes('.')) {
+            // Decimal string - parse and floor
+            const numValue = parseFloat(sizeStr);
+            if (!isNaN(numValue)) {
+              avgTxSizeStr = BigInt(Math.floor(numValue)).toString();
+            } else {
+              avgTxSizeStr = '0';
+            }
+          } else {
+            // Integer string - safe to convert
+            try {
+              avgTxSizeStr = BigInt(sizeStr).toString();
+            } catch {
+              avgTxSizeStr = '0';
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.error('[Risk] Error converting averageTransactionSize:', e, 'Type:', typeof analysis?.averageTransactionSize, 'Value:', analysis?.averageTransactionSize);
+      avgTxSizeStr = '0';
+    }
+    
+    // Ensure balanceWei is actually converted (not still a decimal)
+    // If balanceWei is still '0' or contains a decimal, it means conversion didn't happen
+    if (balanceWei === '0' || (typeof balanceWei === 'string' && balanceWei.includes('.'))) {
+      console.error('[Risk] WARNING: balanceWei not properly converted! Forcing conversion from balanceResult...');
+      // Force conversion from the original balanceResult
+      const originalBalance = String(balanceResult || '0');
+      if (originalBalance.includes('.')) {
+        const parts = originalBalance.split('.');
+        const integerPart = parts[0] || '0';
+        const decimalPart = (parts[1] || '').padEnd(18, '0').slice(0, 18);
+        const weiStr = integerPart + decimalPart;
+        try {
+          if (/^\d+$/.test(weiStr)) {
+            balanceWei = BigInt(weiStr).toString();
+            console.log(`[Risk] Forced conversion successful: ${balanceWei}`);
+          } else {
+            throw new Error('Invalid wei string format');
+          }
+        } catch (e) {
+          console.error('[Risk] Error in forced conversion, using fallback:', e);
+          const ethValue = parseFloat(originalBalance);
+          const integer = Math.floor(ethValue);
+          const fractional = ethValue - integer;
+          const integerWei = BigInt(integer) * BigInt('1000000000000000000');
+          const fractionalWei = BigInt(Math.floor(fractional * 1000000000000000000));
+          balanceWei = (integerWei + fractionalWei).toString();
+          console.log(`[Risk] Fallback conversion result: ${balanceWei}`);
+        }
+      } else {
+        // Not a decimal, try to use as-is
+        try {
+          balanceWei = BigInt(originalBalance).toString();
+        } catch {
+          balanceWei = '0';
+        }
+      }
+    }
+    
+    // Ensure all values are strings to avoid BigInt conversion issues
+    const responseData = {
+      address: String(address),
+      balance: String(balanceWei), // Return wei as string for calculations
+      balanceETH: String(balanceETH || balanceResult || '0'), // ETH value for display
+      riskScore: Number(riskScore),
+      riskLevel: String(riskScore >= 70 ? 'HIGH' : riskScore >= 40 ? 'MEDIUM' : 'LOW'),
+      riskFactors: Array.isArray(riskFactors) ? riskFactors.map(String) : [],
+      transactionCount: Number(transactions.length),
+      tokenTransferCount: Number(tokenTransfers.length),
+      totalVolume: String(totalVolumeStr),
+      averageTransactionSize: String(avgTxSizeStr),
+      suspiciousFlags: Array.isArray(analysis?.flags) ? analysis.flags.map(String) : [],
+      timestamp: Number(Date.now()),
+    };
+    
+    console.log(`[Risk] Final balanceWei: ${responseData.balance}, balanceETH: ${responseData.balanceETH}`);
+    res.json(serializeBigInt(responseData));
+  } catch (error: any) {
+    console.error('Error in risk profile endpoint:', error);
+    res.status(500).json({ error: String(error?.message || error) });
+  }
+});
+
+// Real-time Transaction Monitoring Endpoint
+app.get("/api/transactions/live", async (req: Request, res: Response) => {
+  try {
+    const { agent } = await initializeAgent();
+    const recentTxs = agent.getRecentTransactions(200);
+    const stats = agent.getStats();
+    
+    // Get transactions with risk scores
+    const transactionsWithRisk = recentTxs.map((tx: any) => {
+      const baseTx = {
+        hash: tx.hash || '',
+        chain: tx.chain || 'ethereum',
+        riskScore: tx.riskScore || 0,
+        suspicious: tx.suspicious || false,
+        timestamp: tx.timestamp || Date.now(),
+      };
+      return {
+        ...baseTx,
+        from: (tx as any).from || '',
+        to: (tx as any).to || '',
+        value: (tx as any).value?.toString() || '0',
+        blockNumber: (tx as any).blockNumber?.toString() || '0',
+      };
+    });
+    
+    res.json(serializeBigInt({
+      transactions: transactionsWithRisk,
+      totalProcessed: stats.transactionsProcessed || 0,
+      chainsMonitored: stats.chainsMonitored || 0,
+      timestamp: Date.now(),
+    }));
+  } catch (error) {
+    res.status(500).json({ error: String(error) });
+  }
+});
+
+// Real-time Address Monitoring Endpoint
+app.get("/api/address/:address/live", async (req: Request, res: Response) => {
+  try {
+    const address = req.params.address.toLowerCase();
+    const { agent } = await initializeAgent();
+    
+    // Get real-time transactions from agent
+    const recentTxs = agent.getRecentTransactions(1000);
+    const addressTxs = recentTxs.filter((tx: any) => 
+      tx.hash && (
+        (tx as any).from?.toLowerCase() === address ||
+        (tx as any).to?.toLowerCase() === address
+      )
+    );
+    
+    // Also try Etherscan
+    let etherscanTxs: any[] = [];
+    try {
+      etherscanTxs = await EtherscanAPI.getAddressTransactions(req.params.address, 0, 99999999, 1, 50, 'desc');
+    } catch (error) {
+      console.error('Etherscan error for live monitoring:', error);
+    }
+    
+    // Merge and deduplicate
+    const allTxs: any[] = addressTxs.map((tx: any) => ({
+      hash: tx.hash,
+      from: (tx as any).from || '',
+      to: (tx as any).to || '',
+      value: (tx as any).value?.toString() || '0',
+      chain: tx.chain || 'ethereum',
+      riskScore: tx.riskScore || 0,
+      suspicious: tx.suspicious || false,
+      timestamp: tx.timestamp || Date.now(),
+      blockNumber: (tx as any).blockNumber?.toString() || '0',
+    }));
+    
+    const existingHashes = new Set(allTxs.map((t: any) => t.hash));
+    etherscanTxs.forEach(tx => {
+      if (!existingHashes.has(tx.hash)) {
+        allTxs.push({
+          hash: tx.hash,
+          from: tx.from,
+          to: tx.to,
+          value: tx.value,
+          chain: 'ethereum',
+          riskScore: 0,
+          suspicious: false,
+          timestamp: parseInt(tx.timeStamp) * 1000,
+          blockNumber: tx.blockNumber,
+        });
+      }
+    });
+    
+    // Ensure arrays are never null/undefined
+    const allTxsArray = Array.isArray(allTxs) ? allTxs.slice(0, 100) : [];
+    
+    res.json(serializeBigInt({
+      address: req.params.address,
+      transactions: allTxsArray,
+      count: allTxsArray.length,
+      realTimeCount: addressTxs.length,
+      etherscanCount: etherscanTxs.length,
+      timestamp: Date.now(),
+    }));
+  } catch (error) {
+    res.status(500).json({ error: String(error) });
+  }
+});
+
+// Test Etherscan API endpoint
+app.get("/api/test/etherscan", async (req: Request, res: Response) => {
+  try {
+    // Test with a known address (Vitalik's address)
+    const testAddress = '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045';
+    
+    const [balance, transactions] = await Promise.all([
+      EtherscanAPI.getAccountBalance(testAddress).catch(e => {
+        console.error('Balance test error:', e);
+        return 'ERROR: ' + String(e);
+      }),
+      EtherscanAPI.getAddressTransactions(testAddress, 0, 99999999, 1, 5, 'desc').catch(e => {
+        console.error('Transactions test error:', e);
+        return [];
+      })
+    ]);
+    
+    res.json({
+      success: true,
+      etherscanApiKey: process.env.ETHERSCAN_API_KEY ? 'Set (from env)' : 'Using hardcoded fallback',
+      testAddress,
+      balance,
+      transactionCount: Array.isArray(transactions) ? transactions.length : 0,
+      transactions: Array.isArray(transactions) ? transactions.slice(0, 2) : transactions,
+      timestamp: Date.now(),
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: String(error),
+      etherscanApiKey: process.env.ETHERSCAN_API_KEY ? 'Set (from env)' : 'Using hardcoded fallback',
+    });
+  }
+});
+
 // Test endpoint to verify data flow
 app.get("/api/test", async (req: Request, res: Response) => {
   const { agent, regulatoryMetrics } = await initializeAgent();
@@ -1984,15 +4936,156 @@ app.get("/api/test", async (req: Request, res: Response) => {
   }));
 });
 
+// Research & DeFi Trends Endpoints
+app.get("/api/research/:topic", async (req: Request, res: Response) => {
+  try {
+    const topic = req.params.topic;
+    const format = (req.query.format as string | undefined)?.toLowerCase();
+    const download = format === "docx" || format === "doc";
+
+    if (!openai) {
+      return res.status(503).json({ error: "OpenAI API key not configured" });
+    }
+
+    const prompt = `Research and analyze the following blockchain/DeFi topic: ${topic}
+
+Provide a comprehensive research report covering:
+1. Current state and trends
+2. Technical analysis
+3. Market implications
+4. Risk factors
+5. Future outlook
+6. Regulatory considerations
+
+Format as a structured research document with clear sections.`;
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.7,
+      max_tokens: 2000,
+    });
+
+    const researchText = completion.choices[0]?.message?.content || "Research unavailable.";
+
+    if (download) {
+      const doc = new Document({
+        sections: [
+          {
+            children: [
+              paragraph(`Research: ${topic}`, { heading: HeadingLevel.HEADING_1 }),
+              paragraph(`Generated: ${new Date().toISOString()}`),
+              paragraph("Executive Summary", { heading: HeadingLevel.HEADING_2 }),
+              paragraph(researchText),
+            ],
+          },
+        ],
+      });
+      const buffer = await Packer.toBuffer(doc);
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+      res.setHeader("Content-Disposition", `attachment; filename="research-${topic.replace(/[^a-z0-9]/gi, '_')}.docx"`);
+      return res.send(Buffer.from(buffer));
+    }
+
+    res.json({
+      topic,
+      research: researchText,
+      timestamp: Date.now(),
+    });
+  } catch (error: any) {
+    console.error("[Research] Error:", error);
+    res.status(500).json({ error: String(error?.message || error) });
+  }
+});
+
+app.get("/api/defi/trends", async (req: Request, res: Response) => {
+  try {
+    const format = (req.query.format as string | undefined)?.toLowerCase();
+    const download = format === "docx" || format === "doc";
+    const timeframe = (req.query.timeframe as string) || "7d";
+
+    if (!openai) {
+      return res.status(503).json({ error: "OpenAI API key not configured" });
+    }
+
+    const { agent } = await initializeAgent();
+    const recentTxs = agent.getRecentTransactions(500);
+    const stats = agent.getStats();
+
+    const prompt = `Analyze current DeFi trends based on the following blockchain activity data:
+
+Timeframe: ${timeframe}
+Total Transactions Processed: ${stats.transactionsProcessed || 0}
+Chains Monitored: ${stats.chainsMonitored || 0}
+Recent High-Risk Transactions: ${recentTxs.filter((tx: any) => (tx.riskScore || 0) >= 70).length}
+
+Provide a comprehensive DeFi trends analysis covering:
+1. Market activity patterns
+2. Emerging protocols and trends
+3. Risk indicators and red flags
+4. Regulatory developments
+5. Investment and trading patterns
+6. Security concerns
+7. Future predictions
+
+Format as a structured trends report with actionable insights.`;
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.7,
+      max_tokens: 2000,
+    });
+
+    const trendsText = completion.choices[0]?.message?.content || "Trends analysis unavailable.";
+
+    if (download) {
+      const doc = new Document({
+        sections: [
+          {
+            children: [
+              paragraph("DeFi Trends Analysis", { heading: HeadingLevel.HEADING_1 }),
+              paragraph(`Timeframe: ${timeframe}`),
+              paragraph(`Generated: ${new Date().toISOString()}`),
+              paragraph("Trends Report", { heading: HeadingLevel.HEADING_2 }),
+              paragraph(trendsText),
+            ],
+          },
+        ],
+      });
+      const buffer = await Packer.toBuffer(doc);
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+      res.setHeader("Content-Disposition", `attachment; filename="defi-trends-${timeframe}.docx"`);
+      return res.send(Buffer.from(buffer));
+    }
+
+    res.json({
+      timeframe,
+      trends: trendsText,
+      stats: {
+        transactionsProcessed: stats.transactionsProcessed || 0,
+        chainsMonitored: stats.chainsMonitored || 0,
+        highRiskCount: recentTxs.filter((tx: any) => (tx.riskScore || 0) >= 70).length,
+      },
+      timestamp: Date.now(),
+    });
+  } catch (error: any) {
+    console.error("[DeFi Trends] Error:", error);
+    res.status(500).json({ error: String(error?.message || error) });
+  }
+});
+
 // Serve static files AFTER all API routes
 app.use(express.static(path.join(__dirname)));
 
-// Fallback - redirect everything to regulator dashboard (except API routes)
-app.get("*", (req: Request, res: Response) => {
-  // Redirect to regulator dashboard if it's not an API route
-  if (!req.path.startsWith("/api") && req.path !== "/regulator" && !req.path.endsWith(".html")) {
-    res.redirect("/regulator");
-  }
+// Serve regulator.html explicitly
+app.get("/regulator", (req: Request, res: Response) => {
+  res.sendFile(path.join(__dirname, "regulator.html"));
+});
+
+// Fallback - redirect root to regulator dashboard
+app.get("/", (req: Request, res: Response) => {
+  res.redirect("/regulator");
 });
 
 const PORT = process.env.PORT || 3001;
@@ -2000,5 +5093,11 @@ app.listen(PORT, () => {
   console.log(`📊 Regulator Dashboard server running on http://localhost:${PORT}`);
   console.log(`🌐 Open http://localhost:${PORT}/regulator in your browser`);
   console.log(`🔗 Root URL redirects to: http://localhost:${PORT}/regulator`);
+
+  // Start optional auto SAR scheduler if configured
+  startAutoSarScheduler();
+  
+  // Start consolidated report scheduler (runs every 2 hours)
+  startConsolidatedReportScheduler();
 });
 
